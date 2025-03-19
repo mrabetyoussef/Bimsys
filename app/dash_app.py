@@ -1,5 +1,5 @@
 import dash
-import dash_bootstrap_components as dbc  # ✅ Import Bootstrap Components
+import dash_bootstrap_components as dbc  
 from dash import dcc, html, Input, Output
 from app.pages.home import HomePage
 from app.pages.projects import ProjectsPage
@@ -9,15 +9,16 @@ class DashApp:
     def __init__(self, flask_app):
         """Initialize Dash inside Flask with Bootstrap & Font Awesome"""
         self.dash_app = dash.Dash(
-            
             __name__,
             server=flask_app,
             routes_pathname_prefix="/BIMSYS/",
             external_stylesheets=[dbc.themes.BOOTSTRAP, 
             "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"], 
         )
-        self.dash_app(debug=True, dev_tools_ui=True, dev_tools_props_check=True)
+        self.dash_app.enable_dev_tools(debug=True, dev_tools_ui=True, dev_tools_props_check=True)
 
+
+        self.projects_page = ProjectsPage(self.dash_app)  # Register callbacks before defining layout
 
         self.dash_app.layout = dbc.Container([
             dcc.Location(id="url", refresh=False),
@@ -29,7 +30,6 @@ class DashApp:
             ], className="align-items-center"),
 
             dbc.Row([
-                # ✅ Sidebar Navigation
                 dbc.Col(
                     dbc.Card([
                         dbc.Nav([
@@ -50,24 +50,22 @@ class DashApp:
                     width=3
                 ),
 
-                # ✅ Main Content Section
                 dbc.Col(html.Div(id="page-content", style={"padding": "30px", "background": "#ffffff", "border-radius": "10px"}), 
                         width=9, className="p-4"),
-            ], className="g-0"),  # Remove gutter for cleaner layout
+            ], className="g-0"),  
         ], fluid=True)
 
-        # ✅ Register Callbacks
         self.register_callbacks()
 
     def register_callbacks(self):
         """Handle page navigation inside Dash"""
         @self.dash_app.callback(
             Output("page-content", "children"),
-            Input("url", "pathname")  # ✅ Tracks current URL
+            Input("url", "pathname")  
         )
         def display_page(pathname):
             if pathname == "/BIMSYS/projects":
-                return ProjectsPage(self.dash_app).layout()
+                return self.projects_page.layout()  # Use the pre-initialized instance
             elif pathname.startswith("/BIMSYS/project/"):
                 project_id = pathname.split("/")[-1]
                 return ProjectPage(project_id).layout()

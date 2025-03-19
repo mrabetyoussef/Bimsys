@@ -18,17 +18,16 @@ class ProjectPage:
                 return dbc.Container([
                     dbc.Row([
                         dbc.Col(dbc.Card([
-                            dbc.CardHeader(html.H2(f"📁 {project.name}", className="card-title")),
+                            dbc.CardHeader(html.H2(f"{project.name}", className="card-title")),
                             dbc.CardBody([
-                                html.P(f"🔹 Code: {project.code_akuiteo}", className="mb-2"),
-                                html.P(f"🔹 Phase: {project.phase}", className="mb-2"),
-                                html.P(f"🔹 Status: {project.status}", className="mb-2"),
-                                html.P(f"📅 Start Date: {project.start_date}", className="mb-2"),
-                                html.P(f"👤 BIM Manager ID: {project.bim_manager_id}", className="mb-2"),
+                                html.P(f" Code: {project.code_akuiteo}", className="mb-2"),
+                                html.P(f"Phase: {project.phase}", className="mb-2"),
+                                html.P(f"Status: {project.status}", className="mb-2"),
+                                html.P(f"Start Date: {project.start_date}", className="mb-2"),
+                                html.P(f"BIM Manager ID: {project.bim_manager_id}", className="mb-2"),
                             ])
                         ], style={"box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)", "margin-bottom": "20px"}), width=6),
 
-                        # Placeholder for future sections (like project updates, team members, etc.)
                         dbc.Col([
                             dbc.Card([
                                 dbc.CardHeader(html.H4("Additional Information")),
@@ -40,7 +39,6 @@ class ProjectPage:
                         ], width=6),
                     ], className="g-4"),
 
-                    # Back to Projects Button
                     dbc.Row([
                         dbc.Col(dbc.Button("Back to Projects", href="/BIMSYS/projects", color="secondary", className="mt-3"), width=12)
                     ], className="text-center"),

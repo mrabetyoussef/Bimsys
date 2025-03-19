@@ -14,7 +14,7 @@ class HomePage:
         with current_app.app_context():
             projects = Project.query.all()
             projects_count = len(projects)
-            completed_projects = projects_count // 2  # Simule les projets terminés
+            completed_projects = projects_count // 2  
             active_teams = 5
 
         return dbc.Container([
@@ -25,9 +25,7 @@ class HomePage:
                 ], width=12, style={"margin-bottom": "30px"}),
             ]),
 
-            # ✅ Deux colonnes principales
             dbc.Row([
-                # ✅ Colonne de gauche (Présentation & Nouveautés)
                 dbc.Col([
                     html.H4("À Propos", style={"color": "#2c3e50"}),
                     html.Hr(),
@@ -47,12 +45,10 @@ class HomePage:
 
                 ], width=4, style={"background": "#f8f9fa", "padding": "30px", "border-radius": "10px"}),
 
-                # ✅ Colonne de droite (Statistiques & Insights)
                 dbc.Col([
                     html.H4("📊 Statistiques Générales", style={"color": "#2c3e50", "margin-bottom": "20px"}),
 
                     dbc.Row([
-                        # ✅ Carte 1 : Projets en cours
                         dbc.Col(dbc.Card([
                             dbc.CardBody([
                                 html.H5("Projets en cours", className="card-title"),
@@ -98,6 +94,6 @@ class HomePage:
 
                 ], width=8, style={"padding": "30px", "border-radius": "10px"}),
 
-            ], className="g-0"),  # ✅ Supprime l'espace entre les colonnes
+            ], className="g-0"),  
 
         ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
