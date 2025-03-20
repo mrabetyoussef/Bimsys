@@ -9,8 +9,9 @@ from app.pages import BimUsers
 class DashApp:
     def __init__(self, flask_app):
         """Initialize Dash inside Flask with Bootstrap & Font Awesome"""
-        self.dash_app = dash.Dash(
-            __name__,
+        self.dash_app = dash.Dash(title="BIMSYS",
+            name="BIMSYS"
+            ,
             server=flask_app,
             routes_pathname_prefix="/BIMSYS/",
             external_stylesheets=[dbc.themes.BOOTSTRAP, 

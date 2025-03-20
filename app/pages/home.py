@@ -2,7 +2,7 @@ import dash_bootstrap_components as dbc
 from dash import html, dcc
 from flask import current_app
 from database.model import Project
-
+from datetime import datetime, timedelta
 
 class HomePage:
    
@@ -11,11 +11,14 @@ class HomePage:
         """Return page layout """
 
         with current_app.app_context():
-            projects = Project.query.all()
+            projects = Project.query.all()            
             projects_count = len(projects)
             completed_projects = len([i for i in projects if i.status == "Terminé"])
             active_teams = 5
-
+            today = datetime.now()
+            week_later = today + timedelta(days=7)
+            projects_ending_in_week = Project.query.filter(Project.end_date < week_later).filter(Project.end_date > today).all()
+            projects_ending_lst = [dbc.Accordion(dbc.AccordionItem(title=p.name , children=[html.P(f"Date de fin {p.end_date}")] ),start_collapsed=True)for p in projects_ending_in_week]
         return dbc.Container([
             dbc.Row([
                 dbc.Col([
@@ -45,7 +48,7 @@ class HomePage:
                 ], width=4, style={"background": "#f8f9fa", "padding": "30px", "border-radius": "10px"}),
 
                 dbc.Col([
-                    html.H4("📊 Statistiques Générales", style={"color": "#2c3e50", "margin-bottom": "20px"}),
+                    html.H4("Statistiques Générales", style={"color": "#2c3e50", "margin-bottom": "20px"}),
 
                     dbc.Row([
                         dbc.Col(dbc.Card([
@@ -66,12 +69,22 @@ class HomePage:
 
                         dbc.Col(dbc.Card([
                             dbc.CardBody([
+                                html.H5("Prochainement terminé", className="card-title"),                            
+                                dbc.Col(projects_ending_lst)
+                            ])
+                        ], style={"text-align": "center", "border-radius": "10px",
+                                  "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)"}), width=4),
+
+                        dbc.Col(dbc.Card([
+                            dbc.CardBody([
                                 html.H5("Personnes mobilisés", className="card-title"),
                                 html.H1(f"{active_teams}", className="card-text", style={"font-weight": "bold"}),
                             ])
                         ], style={"text-align": "center", "border-radius": "10px", 
                                   "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)"}), width=4),
                     ], className="g-4", style={"margin-bottom": "30px"}),
+
+                    
 
                     dbc.Card([
                         dbc.CardBody([
