@@ -13,7 +13,7 @@ class DashApp:
             server=flask_app,
             routes_pathname_prefix="/BIMSYS/",
             external_stylesheets=[dbc.themes.BOOTSTRAP, 
-            "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"], 
+            "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"],     suppress_callback_exceptions=True
         )
         self.dash_app.enable_dev_tools(debug=True, dev_tools_ui=True, dev_tools_props_check=True)
 

@@ -1,7 +1,7 @@
 from flask import Flask, redirect, url_for
 from flask_migrate import Migrate
 from database.db import db
-from database.model import Project, Task, User
+from database.model import Project, Task, BimUsers
 from app.dash_app import DashApp 
 
 app = Flask(__name__)
