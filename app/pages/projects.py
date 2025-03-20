@@ -3,6 +3,8 @@ from dash import html, dcc, Input, Output, State, callback_context, no_update
 from flask import current_app
 from database.db import db
 from database.model import Project
+from database.model import BimUsers as dbBimUsers
+
 from datetime import datetime
 import pandas as pd
 
@@ -31,7 +33,13 @@ class ProjectsPage:
 
             dbc.Row(id="project-list", children=self.get_project_list(), className="g-4"),
 
-            dbc.Modal([
+            self.add_project_modal()
+        ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
+    
+    def add_project_modal(self):
+        users = dbBimUsers.query.filter(dbBimUsers.role == "BIM MANAGER")
+        
+        ui= dbc.Modal([
                 dbc.ModalHeader(dbc.ModalTitle("Ajouter un Projet")),
                 dbc.ModalBody([
                     dbc.Label("Nom du Projet"),
@@ -68,9 +76,7 @@ class ProjectsPage:
                     dbc.Label("BIM MANAGER"),
                     dcc.Dropdown(id="project-bim-manager",
                         options=[
-                            {"label": "BIM 1", "value": "BIM 1"},
-                            {"label": "BIM 2", "value": "BIM 2"},
-                            {"label": "BIM 3", "value": "BIM 3"},
+                            {"label": user.name , "value": user.id} for user in users
                         ],
                         placeholder="Sélectionnez un BIM MANAGER"
                     ),
@@ -79,9 +85,10 @@ class ProjectsPage:
                     dbc.Button("Annuler", id="close-add-project", className="ml-auto"),
                     dbc.Button("Ajouter", id="submit-add-project", color="primary"),
                 ])
-            ], id="add-project-modal", is_open=False),
-        ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
-
+            ], id="add-project-modal", is_open=False)
+        
+        return ui
+    
     def get_project_list(self):
         """Fetch and return project cards"""
         with current_app.app_context():
@@ -108,7 +115,7 @@ class ProjectsPage:
                 "start_date": p.start_date.strftime("%Y-%m-%d") if p.start_date else None,
                 "end_date": p.end_date.strftime("%Y-%m-%d") if p.end_date else None,
                 "phase": p.phase,
-                "bim_manager_id": p.bim_manager_id
+                "bim Manager": dbBimUsers.query.filter(p.bim_manager_id ==dbBimUsers.id).one_or_none().name
             }
             for p in projects
         ]
@@ -125,7 +132,7 @@ class ProjectsPage:
 
 
     def register_callbacks(self):
-        """Register a Single Callback for Modal Control and Project Submission"""
+        """Register a Single Callback for Modal Control and Project adding"""
 
         @self.app.callback(
             [Output("add-project-modal", "is_open"),
@@ -152,10 +159,10 @@ class ProjectsPage:
             prevent_initial_call=True
         )
         def handle_modal_and_add_project(open_click, close_click, submit_click,project_view_type_click, is_open,
-                                         name, status, start_date, end_date, phase, bim_manager , project_view_type):
+                                         name, status, start_date, end_date, phase, bim_manager_id , project_view_type):
             
 
-            
+
             ctx = callback_context
 
             if not ctx.triggered:
@@ -170,7 +177,7 @@ class ProjectsPage:
                 return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update
 
             if button_id == "submit-add-project":
-                if not all([name, status, start_date, end_date, phase, bim_manager]):
+                if not all([name, status, start_date, end_date, phase, bim_manager_id]):
                     return is_open, no_update, no_update, no_update, no_update, no_update, no_update, no_update
 
                 try:
@@ -180,14 +187,14 @@ class ProjectsPage:
                     return is_open, no_update, no_update, no_update, no_update, no_update, no_update, no_update
 
                 with current_app.app_context():
-                    print(name, status,start_date,end_date,phase,bim_manager)
+                    
                     new_project = Project(
                         name=name,
                         status=status,
                         start_date=start_date_obj,
                         end_date=end_date_obj,
                         phase=phase,
-                        bim_manager_id=1
+                        bim_manager_id=bim_manager_id
                     )
                     db.session.add(new_project)
                     db.session.commit()

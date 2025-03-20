@@ -28,7 +28,7 @@ class Project(db.Model):
 class Task(db.Model):
     __tablename__ = "Task"
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String(16), primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(50), default="À faire")  # À faire, En cours, Terminé
@@ -40,10 +40,16 @@ class Task(db.Model):
 class BimUsers(db.Model):
     __tablename__ = "BimUsers"
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String(16), primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
     role = db.Column(
         db.String(50), nullable=False
-    )  # Manager, BIM Manager, Collaborateur
+    )  
     projects = db.relationship("Project", backref="bim_manager", lazy=True)
+
+    def __init__(self, name, email , role):
+        self.id = shortuuid.uuid()[:10] 
+        self.name = name
+        self.email = email
+        self.role = role

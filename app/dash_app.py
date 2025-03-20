@@ -4,6 +4,7 @@ from dash import dcc, html, Input, Output
 from app.pages.home import HomePage
 from app.pages.projects import ProjectsPage
 from app.pages.project import ProjectPage
+from app.pages import BimUsers
 
 class DashApp:
     def __init__(self, flask_app):
@@ -18,7 +19,9 @@ class DashApp:
         self.dash_app.enable_dev_tools(debug=True, dev_tools_ui=True, dev_tools_props_check=True)
 
 
-        self.projects_page = ProjectsPage(self.dash_app)  # Register callbacks before defining layout
+        self.projects_page = ProjectsPage(self.dash_app)  
+        self.bimUsers = BimUsers(self.dash_app)
+
 
         self.dash_app.layout = dbc.Container([
             dcc.Location(id="url", refresh=False),
@@ -34,14 +37,19 @@ class DashApp:
                     dbc.Card([
                         dbc.Nav([
                             dbc.NavLink([
-                                html.I(className="fa fa-home me-2"),  
-                                "Accueil"
-                            ], href="/BIMSYS/", active="exact", className="mb-2"),
+                                        html.I(className="fa fa-home me-2"),  
+                                         "Accueil" ], 
+                                        href="/BIMSYS/", active="exact", className="mb-2"),
 
                             dbc.NavLink([
                                 html.I(className="fa fa-folder-open me-2"),  
                                 "Projets"
                             ], href="/BIMSYS/projects", active="exact", className="mb-2"),
+
+                            dbc.NavLink([
+                                html.I(className="fa fa-folder-open me-2"),  
+                                "Collaborateurs"
+                            ], href="/BIMSYS/collaborateurs", active="exact", className="mb-2"),
                         ], vertical=True, pills=True),
                     ], body=True, style={
                         "height": "100vh",
@@ -64,9 +72,12 @@ class DashApp:
             Input("url", "pathname")  
         )
         def display_page(pathname):
+            print(pathname)
             if pathname == "/BIMSYS/projects":
                 return self.projects_page.layout()  # Use the pre-initialized instance
             elif pathname.startswith("/BIMSYS/project/"):
                 project_id = pathname.split("/")[-1]
                 return ProjectPage(project_id).layout()
+            elif pathname.startswith("/BIMSYS/collaborateurs"):
+                return self.bimUsers.layout()
             return HomePage().layout()

@@ -5,16 +5,15 @@ from database.model import Project
 
 
 class HomePage:
-    def __init__(self):
-        pass  
+   
 
     def layout(self):
-        """Return Home Page Layout with Enhanced UI"""
+        """Return page layout """
 
         with current_app.app_context():
             projects = Project.query.all()
             projects_count = len(projects)
-            completed_projects = projects_count // 2  
+            completed_projects = len([i for i in projects if i.status == "Terminé"])
             active_teams = 5
 
         return dbc.Container([
@@ -67,7 +66,7 @@ class HomePage:
 
                         dbc.Col(dbc.Card([
                             dbc.CardBody([
-                                html.H5("Équipes actives", className="card-title"),
+                                html.H5("Personnes mobilisés", className="card-title"),
                                 html.H1(f"{active_teams}", className="card-text", style={"font-weight": "bold"}),
                             ])
                         ], style={"text-align": "center", "border-radius": "10px", 
