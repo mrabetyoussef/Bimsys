@@ -4,13 +4,26 @@ from flask import current_app
 from database.db import db
 from database.model import BimUsers as dbBimUsers
 from datetime import datetime
-
+import pandas as pd
 
 class BimUsers:
     def __init__(self, app):
         """Initialize Users Page and Register Callbacks"""
         self.app = app
         self.register_callbacks()
+        
+    def projects_by_users (self):
+        users = dbBimUsers.query.all()       
+        users_project_dict = [{user.name : [project.name for project in user.projects]} for user in users ]
+        return dbc.Col(children=[ html.H3("Projets en cours par collaborateurs"),
+                        dbc.Row(
+                        children=[ 
+                                    dbc.Col(children=[
+                                                dbc.Card(children=[dbc.CardHeader(name), dbc.CardBody([html.Li(p) for p in projects])]) for name , projects in dict_user.items()]
+                                            )
+                                        for dict_user in users_project_dict
+                        ]
+                    )])
 
     def layout(self):
         """Return User List with Add User Modal"""
@@ -34,7 +47,8 @@ class BimUsers:
                 ), width=12)
             ], className="mb-4"),
 
-            dbc.Row(id="user-list", children=self.get_user_table(), className="g-4"),  # Default to table view
+            dbc.Row(id="user-list", children=self.get_user_table(), className="g-4"), 
+            dbc.Row(id="user-projects-lst", children=self.projects_by_users(), className="g-4"),  
 
             dbc.Modal([
                 dbc.ModalHeader(dbc.ModalTitle("Ajouter un Collaborateur")),
@@ -68,7 +82,7 @@ class BimUsers:
             return dbc.Table([
                 html.Thead(html.Tr([html.Th("Nom"), html.Th("Email"), html.Th("Rôle")])),
                 html.Tbody([
-                    html.Tr([html.Td(u.name), html.Td(u.email), html.Td(u.role)]) for u in users
+                    html.Tr([html.Td(dbc.Button(u.name, href=f"/BIMSYS/bimuser/{u.id}", color="primary", className="mt-2")), html.Td(u.email), html.Td(u.role)]) for u in users
                 ])
             ], bordered=True, striped=True, hover=True)
 

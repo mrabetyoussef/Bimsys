@@ -4,6 +4,8 @@ from dash import dcc, html, Input, Output
 from app.pages.home import HomePage
 from app.pages.projects import ProjectsPage
 from app.pages.project import ProjectPage
+from app.pages.bimuser import BimUser
+ 
 from app.pages import BimUsers
 
 class DashApp:
@@ -73,7 +75,6 @@ class DashApp:
             Input("url", "pathname")  
         )
         def display_page(pathname):
-            print(pathname)
             if pathname == "/BIMSYS/projects":
                 return self.projects_page.layout()  # Use the pre-initialized instance
             elif pathname.startswith("/BIMSYS/project/"):
@@ -81,4 +82,8 @@ class DashApp:
                 return ProjectPage(project_id).layout()
             elif pathname.startswith("/BIMSYS/collaborateurs"):
                 return self.bimUsers.layout()
+            elif  pathname.startswith("/BIMSYS/bimuser"):
+                bimuser_id = pathname.split("/")[-1]
+                return BimUser(bimuser_id).layout()
+                
             return HomePage().layout()
