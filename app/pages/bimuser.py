@@ -9,13 +9,36 @@ class BimUser:
         self.user_id  = user_id
 
    
+    def get_projects(self, user):
+        return dbc.CardGroup(
+        [
+            dbc.Col(
+                html.A(
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.H5(p.name, className="card-title")
+                        ]),
+                        className="card-hover",
+                        style={
+                            "margin": "5px 5px 5px 5px",
+                            "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"
+                        }
+                    ),
+                    href=f"/BIMSYS/project/{p.id}",
+                    style={"textDecoration": "none", "color": "inherit"}
+                ),
+                width=4
+            )
+            for p in user.projects
+        ]
+        )
 
 
     def layout(self):
         """Return a Single user View with Enhanced UI"""
         with current_app.app_context():
             user = dbBimUsers.query.get(self.user_id)
-
+            
             if user:
                 return dbc.Container([
                     dbc.Row([
@@ -32,10 +55,9 @@ class BimUser:
 
                         dbc.Col([
                             dbc.Card([
-                                dbc.CardHeader(html.H4("Projets affilé")),
-                                dbc.CardBody([
-                                    html.P("More details about the user will be added here."),
-                                    html.P("This section can include documents, tasks, and updates."),
+                                dbc.CardHeader(html.H4("Projets affilés")),
+                                dbc.CardBody([self.get_projects(user)
+                                   
                                 ])
                             ], style={"box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"})
                         ], width=6),

@@ -1,0 +1,13 @@
+/* Default styling for the card */
+a:card-hover {
+    background-color: #ff0000; /* default fill color */
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+}
+
+a:hover .card-hover {
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    background-color: #006fdf; 
+    box-shadow: 0px 8px 16px rgba(0, 68, 255, 0.3) ;
+    color: white;
+}

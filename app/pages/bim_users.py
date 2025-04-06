@@ -5,28 +5,48 @@ from database.db import db
 from database.model import BimUsers as dbBimUsers
 from datetime import datetime
 import pandas as pd
+from dash import dcc
+from dash import callback, Output, Input, ctx, dcc, MATCH , ALL
+import pdb
+ 
 
 class BimUsers:
     def __init__(self, app):
         """Initialize Users Page and Register Callbacks"""
         self.app = app
         self.register_callbacks()
+        self.view_type = "Vue Carte"
         
-    def projects_by_users (self):
-        users = dbBimUsers.query.all()       
-        users_project_dict = [{user.name : [project.name for project in user.projects]} for user in users ]
-        return dbc.Col(children=[ html.H3("Projets en cours par collaborateurs"),
-                        dbc.Row(
-                        children=[ 
-                                    dbc.Col(children=[
-                                                dbc.Card(children=[dbc.CardHeader(name), dbc.CardBody([html.Li(p) for p in projects])]) for name , projects in dict_user.items()]
-                                            )
-                                        for dict_user in users_project_dict
-                        ]
-                    )])
+    def projects_by_users(self):
+        users = dbBimUsers.query.all()
+        users_project_dict = [{user.name: [project.name for project in user.projects]} for user in users]
+
+        return dbc.Container([
+            html.H3("Projets en cours par collaborateurs", className="my-4 text-primary"),
+
+            dbc.Row([
+                dbc.Col(
+                    dbc.Card([
+                        dbc.CardHeader(html.H5(user_name, className="mb-0")),
+                        dbc.CardBody([
+                            html.Ul([html.Li(project, className="mb-1") for project in projects])
+                        ])
+                    ],
+                    className="shadow-sm border-0 h-100"),
+                    xs=12, sm=6, md=4, lg=3, className="mb-4"
+                )
+                for user_dict in users_project_dict
+                for user_name, projects in user_dict.items()
+            ])
+        ], fluid=True)
+
 
     def layout(self):
         """Return User List with Add User Modal"""
+        if self.view_type == "Vue Carte":
+            users_list = self.get_user_list()
+        else :
+            users_list = self.get_user_table()
         return dbc.Container([
             dbc.Row([
                 dbc.Col(html.H1("Collaborateurs", className="mb-4", style={"color": "#2c3e50"}), width=9),
@@ -41,13 +61,13 @@ class BimUsers:
                         {"label": "Vue Tableau", "value": "Vue Tableau"},
                         {"label": "Vue Carte", "value": "Vue Carte"},
                     ],
-                    value="Vue Tableau",
+                    value= self.view_type,
                     id="user-view-type",
                     inline=True
                 ), width=12)
             ], className="mb-4"),
 
-            dbc.Row(id="user-list", children=self.get_user_table(), className="g-4"), 
+            dbc.Row(id="user-list", children=users_list, className="g-4"), 
             dbc.Row(id="user-projects-lst", children=self.projects_by_users(), className="g-4"),  
 
             dbc.Modal([
@@ -75,31 +95,89 @@ class BimUsers:
             ], id="add-user-modal", is_open=False),
         ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
 
+
+
     def get_user_table(self):
-        """Fetch all users and return as a table"""
+        """Fetch all users and return a styled, modern table with visually clickable rows"""
         with current_app.app_context():
             users = dbBimUsers.query.all()
-            return dbc.Table([
-                html.Thead(html.Tr([html.Th("Nom"), html.Th("Email"), html.Th("Rôle")])),
-                html.Tbody([
-                    html.Tr([html.Td(dbc.Button(u.name, href=f"/BIMSYS/bimuser/{u.id}", color="primary", className="mt-2")), html.Td(u.email), html.Td(u.role)]) for u in users
+
+            table_rows = []
+            for user in users:
+                table_rows.append(
+                    (html.Tr(
+                        [
+                            html.Td(user.name, className="fw-bold"),
+                            html.Td(user.email, className="text-muted"),
+                            html.Td(dbc.Badge(user.role.capitalize(), color="info", className="px-2 py-1")),
+                            html.Td(
+                                dbc.Button(
+                                    html.I(className="fas fa-arrow-right"),  # Font Awesome arrow icon
+                                    href=f"/BIMSYS/bimuser/{user.id}",  # Navigation link
+                                    color="link",  # or another style (e.g., "primary")
+                                    style={"textDecoration": "none"}
+                                ),
+                            className="text-end"
+                ),
+
+                        ],
+                        style={"cursor": "pointer"},
+
+                    ))
+                )
+
+            return dbc.Card([
+                dbc.CardHeader(html.H4("Utilisateurs BIM", className="mb-0 text-primary")),
+                dbc.CardBody([
+                    dbc.Table([
+                        html.Thead(
+                            html.Tr([
+                                html.Th("Nom"),
+                                html.Th("Email"),
+                                html.Th("Rôle"),
+                                html.Th("")
+                            ])
+                        ),
+                        html.Tbody(table_rows)
+                    ],
+                    bordered=False, striped=True, hover=True, responsive=True, className="align-middle mb-0")
                 ])
-            ], bordered=True, striped=True, hover=True)
+            ], className="shadow-sm border-0 mb-4")
+
+
+
+
 
     def get_user_list(self):
         """Fetch all users and return as cards"""
         with current_app.app_context():
             users = dbBimUsers.query.all()
             return [
-                dbc.Col(dbc.Card([
-                    dbc.CardBody([
-                        html.H5(u.name, className="card-title"),
-                        html.P(f"Email: {u.email}", className="card-text"),
-                        html.P(f"Rôle: {u.role}", className="card-text"),
-                    ])
-                ], style={"margin-bottom": "20px", "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"}), width=4)
+                dbc.Col(
+                    html.A(
+                        dbc.Card(
+                            dbc.CardBody([
+                                html.H5(u.name, className="card-title"),
+                                html.P(f"Email: {u.email}", className="card-text"),
+                                html.P(f"Rôle: {u.role}", className="card-text"),
+                            ]),
+                            className="card-hover", 
+                            style={
+                                "margin-bottom": "20px",
+                                "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"
+                            }
+                        ),
+                        href=f"/BIMSYS/bimuser/{u.id}",
+                        style={"textDecoration": "none", "color": "inherit"}
+                    ),
+                    width=4
+                )
                 for u in users
             ]
+
+
+
+
 
     def register_callbacks(self):
         """Register Callbacks for Modal Control and User Addition"""
@@ -142,7 +220,6 @@ class BimUsers:
                     return is_open, no_update, no_update, no_update, no_update
 
                 with current_app.app_context():
-                    print(name, email, role)
                     new_user = dbBimUsers(
                         name=name,
                         email=email,
@@ -156,7 +233,18 @@ class BimUsers:
                 return (False, None, None, None, users_display)
 
             if button_id == "user-view-type":
-                print(f"View switched to: {user_view_type_click}")
+                self.view_type = user_view_type_click
                 users_display = self.get_user_list() if user_view_type_click == "Vue Carte" else self.get_user_table()
 
                 return (False, None, None, None, users_display)
+
+        @self.app.callback(
+            Output("url", "pathname"),
+            Input({"type": "user-card", "index": ALL}, "n_clicks"),
+            prevent_initial_call=True
+        )
+        def navigate_on_card_click(n_clicks_list):
+            triggered = ctx.triggered_id
+            if triggered and "index" in triggered:
+                return f"/BIMSYS/bimuser/{triggered['index']}"
+            return dash.no_update

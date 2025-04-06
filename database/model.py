@@ -13,6 +13,7 @@ class Project(db.Model):
     end_date = db.Column(db.Date, nullable=True)
     phase = db.Column(db.String(50), nullable=False)
     bim_manager_id = db.Column(db.Integer, db.ForeignKey("BimUsers.id"))
+    tasks = db.relationship("Task", backref="project", lazy=True)
 
     def __init__(self, name, status, start_date, end_date, phase, bim_manager_id,):
         self.id = shortuuid.uuid()[:10] 
@@ -25,16 +26,27 @@ class Project(db.Model):
         self.bim_manager_id = bim_manager_id
 
 
-class Task(db.Model):
-    __tablename__ = "Task"
 
-    id = db.Column(db.String(16), primary_key=True)
+class Task(db.Model):
+    __tablename__ = "tasks"
+
+    id = db.Column(db.String(16), primary_key=True, default=lambda: shortuuid.uuid()[:10])
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(50), default="À faire")  # À faire, En cours, Terminé
+    status = db.Column(db.String(50), default="À faire")
     assigned_to = db.Column(db.Integer, db.ForeignKey("BimUsers.id"), nullable=True)
-    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    project_id = db.Column(db.String(16), db.ForeignKey("projects.id"), nullable=False)
     due_date = db.Column(db.Date, nullable=True)
+
+    def __init__(self, name, description, status="À faire", assigned_to=None, project_id=None, due_date=None):
+        self.id = shortuuid.uuid()[:10]
+        self.name = name
+        self.description = description
+        self.status = status
+        self.assigned_to = assigned_to
+        self.project_id = project_id
+        self.due_date = due_date
+
 
 
 class BimUsers(db.Model):
@@ -53,3 +65,5 @@ class BimUsers(db.Model):
         self.name = name
         self.email = email
         self.role = role
+
+

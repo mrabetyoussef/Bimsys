@@ -5,7 +5,8 @@ from app.pages.home import HomePage
 from app.pages.projects import ProjectsPage
 from app.pages.project import ProjectPage
 from app.pages.bimuser import BimUser
- 
+from app.pages.task import TaskPage
+
 from app.pages import BimUsers
 
 class DashApp:
@@ -24,7 +25,7 @@ class DashApp:
 
         self.projects_page = ProjectsPage(self.dash_app)  
         self.bimUsers = BimUsers(self.dash_app)
-
+        self.project = ProjectPage(self.dash_app)
 
         self.dash_app.layout = dbc.Container([
             dcc.Location(id="url", refresh=False),
@@ -79,11 +80,14 @@ class DashApp:
                 return self.projects_page.layout()  # Use the pre-initialized instance
             elif pathname.startswith("/BIMSYS/project/"):
                 project_id = pathname.split("/")[-1]
-                return ProjectPage(project_id).layout()
+                return self.project.layout(project_id)
             elif pathname.startswith("/BIMSYS/collaborateurs"):
                 return self.bimUsers.layout()
             elif  pathname.startswith("/BIMSYS/bimuser"):
                 bimuser_id = pathname.split("/")[-1]
                 return BimUser(bimuser_id).layout()
+            elif  pathname.startswith("/BIMSYS/task"):
+                task_id = pathname.split("/")[-1]
+                return TaskPage(task_id , self.dash_app).layout()
                 
             return HomePage().layout()
