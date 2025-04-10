@@ -13,9 +13,14 @@ class ProjectsPage:
         """Initialize Projects Page and Register Callbacks"""
         self.app = app
         self.register_callbacks()
+        self.view_type = "Vue Carte"
 
     def layout(self):
         """Return List of Projects with Add Project Modal"""
+        if self.view_type == "Vue Carte":
+            users_list = self.get_project_list()
+        else :
+            users_list = self.get_project_table()
         return dbc.Container([
             dbc.Row([dbc.Col(html.H1("Projets", className="mb-4", style={"color": "#2c3e50"}), width=9),
                      dbc.Col(dbc.Button("Ajouter un Projet", id="open-add-project", color="success",
@@ -24,14 +29,14 @@ class ProjectsPage:
                             dbc.RadioItems( options=[
                                 {"label": "Vue Tableau", "value": "Vue Tableau"},
                                 {"label": "Vue Carte", "value":"Vue Carte"},   ],
-                                value=1,
+                                value=self.view_type,
                                 id="project-view-type",
                                 inline=True,),
 
                     ], 
                     className="align-items-center mb-4"),
 
-            dbc.Row(id="project-list", children=self.get_project_list(), className="g-4"),
+            dbc.Row(id="project-list", children=users_list, className="g-4"),
 
             self.add_project_modal()
         ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
@@ -90,19 +95,32 @@ class ProjectsPage:
         return ui
     
     def get_project_list(self):
-        """Fetch and return project cards"""
+        """Fetch all projects and return as cards"""
         with current_app.app_context():
             projects = Project.query.all()
             return [
-                dbc.Col(dbc.Card([
-                    dbc.CardBody([
-                        html.H5(p.name, className="card-title"),
-                        html.P(f"Statut: {p.status}", className="card-text"),
-                        dbc.Button("Voir plus", href=f"/BIMSYS/project/{p.id}", color="primary", className="mt-2")
-                    ])
-                ], style={"margin-bottom": "20px", "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"}), width=4)
+                dbc.Col(
+                    html.A(
+                        dbc.Card(
+                            dbc.CardBody([
+                                html.H5(p.name, className="card-title"),
+                                html.P(f"Statut: {p.status}", className="card-text"),
+                                html.P(f"Phase: {p.phase}", className="card-text"),
+                            ]),
+                            className="card-hover",
+                            style={
+                                "margin-bottom": "20px",
+                                "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"
+                            }
+                        ),
+                        href=f"/BIMSYS/project/{p.id}",
+                        style={"textDecoration": "none", "color": "inherit"}
+                    ),
+                    width=4
+                )
                 for p in projects
             ]
+
         
     def get_project_table(self):
         projects = Project.query.all()
@@ -206,7 +224,7 @@ class ProjectsPage:
                 return (False,  None, None, None, None, None, None,     projects_display )  
 
             if button_id == "project-view-type" :
-                print(project_view_type_click)
+                self.view_type = project_view_type_click
                 if project_view_type_click == "Vue Carte" : 
                     projects_display = self.get_project_list()
                 else :

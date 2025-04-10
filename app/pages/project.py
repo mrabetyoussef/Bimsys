@@ -6,9 +6,16 @@ from database.model import Project
 from database.model import BimUsers as dbBimUsers
 from database.model import Task as  dbTask
 from dash import html, dcc, Input, Output, State, callback_context, no_update
-
+import plotly.express as px
 from datetime import datetime
 import pandas as pd
+import calendar
+from datetime import date, timedelta
+from dash import html
+import dash_bootstrap_components as dbc
+from math import ceil
+
+
 
 
 class ProjectPage:
@@ -18,27 +25,114 @@ class ProjectPage:
         self.app = app
         self.register_callbacks()
 
+
+    def calculate_jours_par_semaine(self, project):
+        if not (project.start_date and project.end_date):
+            return None
+
+        duration_days = (project.end_date - project.start_date).days
+        nb_semaines = max(1, ceil(duration_days / 7))  # éviter division par 0
+        jours_par_semaine = round(20 / nb_semaines, 2)
+        return jours_par_semaine
+
+    def generate_weekly_planning_table_by_month(self, project, selected_month: str = None, jours_par_semaine=None):
+        from math import ceil
+        from datetime import date
+
+        # Mois courant par défaut
+        if not selected_month:
+            selected_month = date.today().strftime("%Y-%m")
+
+        year, month = map(int, selected_month.split("-"))
+        start_of_month = date(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        end_of_month = date(year, month, last_day)
+
+        # Début au lundi précédent le 1er du mois
+        current = start_of_month - timedelta(days=start_of_month.weekday())
+        weeks = []
+
+        while current <= end_of_month:
+            weeks.append({
+                "monday": current,
+                "end": current + timedelta(days=6)
+            })
+            current += timedelta(days=7)
+
+        jours_par_semaine = jours_par_semaine or self.calculate_jours_par_semaine(project)
+
+        # Colonnes avec date du lundi
+        week_headers = [html.Th(w["monday"].strftime("%d/%m/%Y")) for w in weeks]
+
+        # Ligne des jours alloués
+        jours_row = html.Tr([html.Td("Jours alloués")] + [
+            html.Td(f"{jours_par_semaine} j") for _ in weeks
+        ])
+
+   
+        return dbc.Table([
+            html.Thead(html.Tr([html.Th("")] + week_headers)),
+            html.Tbody([jours_row])
+        ], bordered=True, striped=True, hover=True, className="weekly-planning-matrix")
+
+    def get_month_list(self, start_date, end_date):
+        months = []
+        current = start_date.replace(day=1)
+        while current <= end_date:
+            months.append(current.strftime("%Y-%m"))
+            # passer au 1er jour du mois suivant
+            if current.month == 12:
+                current = current.replace(year=current.year + 1, month=1)
+            else:
+                current = current.replace(month=current.month + 1)
+        return months
+
+
     def layout(self,project_id):
+
+
         self.project_id = project_id
         self.project = Project.query.get(self.project_id)
-
+        lst_mois = self.get_month_list( self.project.start_date,  self.project.end_date)
+        print(list)
         with current_app.app_context():
             project = Project.query.get(self.project_id)
+            bim_manager = dbBimUsers.query.filter(dbBimUsers.id ==project.bim_manager_id).one_or_none()
+            
             if project:
                 return dbc.Container([self.task_adding_modal(),
                     dbc.Row([
                         dbc.Col(
-                            dbc.Card([
+                            [dbc.Card([
                                 dbc.CardHeader(html.H2(project.name, className="card-title")),
                                 dbc.CardBody([
                                     html.P(f"Code: {project.code_akuiteo}", className="mb-2"),
                                     html.P(f"Phase: {project.phase}", className="mb-2"),
                                     html.P(f"Status: {project.status}", className="mb-2"),
-                                    html.P(f"Start Date: {project.start_date}", className="mb-2"),
-                                    html.P(f"BIM Manager ID: {project.bim_manager_id}", className="mb-2"),
+                                    html.P(f"Date de début: {project.start_date}", className="mb-2"),
+                                    html.P(f"Date de fin: {project.end_date}", className="mb-2"),
+                                    html.P(f"BIM Manager: {bim_manager.name}", className="mb-2"),
                                 ])
                             ], style={"box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)", "margin-bottom": "20px"}),
-                            width=6
+                            dbc.Card([
+                            dbc.CardHeader([
+                                html.H5("Planning Prévisionnel du projet", className="mb-2"),
+                                dcc.Dropdown(
+                                    id="project-calendar-month",
+                                    options=[
+                                        {"label": date(2025, m, 1).strftime("%B %Y"), "value": f"2025-{m:02d}"}
+                                        for m in range(1, 13)
+                                    ],
+                                    value=project.start_date.strftime("%Y-%m"),
+                                    clearable=False
+                                )
+                            ]),
+                            dbc.CardBody(children=[self.generate_weekly_planning_table_by_month(project=project , selected_month=mois)   for mois in lst_mois],id="calendar-container")
+                        ])
+                    
+                            
+                            
+                            ], width=6
                         ),
                         dbc.Col(
                             dbc.Card([
@@ -200,4 +294,4 @@ class ProjectPage:
 
                 return False , self.get_project_tasks(self.project )
             return is_open
-
+        
