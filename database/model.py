@@ -3,7 +3,18 @@ from database.db import db
 from sqlalchemy import Float
 from datetime import date
 
+
+
+class Phases(db.Model):
+    __tablename__ = "phases"
+    id = db.Column(db.String(16), primary_key=True, unique=True, nullable=False, default=lambda: shortuuid.uuid()[:10])
+    project_id = db.Column(db.String, db.ForeignKey("projects.id"))
+    name =  db.Column(db.String(255), nullable=False)
+    
+    
 class Project(db.Model):
+        
+
     __tablename__ = "projects"
 
     id = db.Column(db.String(16), primary_key=True, unique=True, nullable=False, default=lambda: shortuuid.uuid()[:10])
@@ -17,7 +28,7 @@ class Project(db.Model):
     days_budget = db.Column(Float)
     budget = db.Column(Float)
     tasks = db.relationship("Task", backref="project", lazy=True)
-
+    phases = db.relationship("Phases", backref="project", lazy=True)
 
 
 
