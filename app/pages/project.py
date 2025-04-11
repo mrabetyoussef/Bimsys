@@ -61,7 +61,9 @@ class ProjectPage:
             })
             current += timedelta(days=7)
 
-        jours_par_semaine = jours_par_semaine or self.calculate_jours_par_semaine(project)
+        jours_par_semaine = self.calculate_jours_par_semaine(project)
+        if not jours_par_semaine :
+            return html.Strong("Renseinger un budget en jours pour le projet pour afficher le planning")
 
         # Colonnes avec date du lundi
         week_headers = [html.Th(w["monday"].strftime("%d/%m"), style={"background" : "#f7e279" , "width" : "1px"}) for w in weeks]
@@ -327,6 +329,8 @@ class ProjectPage:
         
         @self.app.callback(
         Output("calendar-container", "children"),
+        Output("input-days-budget", "value"),
+        Output("input-budget", "value"),
         [
             Input("input-phase", "value"),
             Input("input-status", "value"),
@@ -355,10 +359,29 @@ class ProjectPage:
             db.session.commit()
             
             if ctx.triggered_id in ("input-start-date","input-end-date","input-days-budget"):
+                if ctx.triggered_id =="input-days-budget":
+                    new_budget = project.days_budget * 750
+
+                else :
+                    new_budget = no_update
                 lst_mois = self.get_month_list( project.start_date, project.end_date)
                 new_calendar = [self.generate_weekly_planning_table_by_month(project=project , selected_month=mois)     for mois in lst_mois]
-                return new_calendar
+                return new_calendar , no_update ,new_budget
+            
+            if ctx.triggered_id in ("input-budget"):
+                if budget > 750:
+                    day_budget = budget/750
+                    project.days_budget = day_budget
+                    db.session.commit()
+
+                    lst_mois = self.get_month_list( project.start_date, project.end_date)
+                    new_calendar = [self.generate_weekly_planning_table_by_month(project=project , selected_month=mois)     for mois in lst_mois]
+                    return new_calendar, day_budget , no_update
+
+
             return no_update
+        
+
             
 
             
