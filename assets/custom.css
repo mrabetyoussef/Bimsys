@@ -11,3 +11,13 @@ a:hover .card-hover {
     box-shadow: 0px 8px 16px rgba(0, 68, 255, 0.3) ;
     color: white;
 }
+
+
+
+.square-cell {
+    width: 60px;        /* Ajuste selon tes besoins */
+    height: 60px;       /* Pour que ce soit un carré */
+    text-align: center;
+    vertical-align: middle;
+    padding: 0;         /* Pour éviter que le padding fausse la forme carrée */
+}
