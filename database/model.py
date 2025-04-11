@@ -1,5 +1,6 @@
 import shortuuid
-from database.db import db
+from database.db import db 
+from sqlalchemy import Float
 from datetime import date
 
 class Project(db.Model):
@@ -13,9 +14,14 @@ class Project(db.Model):
     end_date = db.Column(db.Date, nullable=True)
     phase = db.Column(db.String(50), nullable=False)
     bim_manager_id = db.Column(db.Integer, db.ForeignKey("BimUsers.id"))
+    days_budget = db.Column(Float)
+    budget = db.Column(Float)
     tasks = db.relationship("Task", backref="project", lazy=True)
 
-    def __init__(self, name, status, start_date, end_date, phase, bim_manager_id,):
+
+
+
+    def __init__(self, name, status, start_date, end_date, phase, bim_manager_id,days_budget):
         self.id = shortuuid.uuid()[:10] 
         self.code_akuiteo  = shortuuid.uuid()[:10] 
         self.name = name
@@ -24,7 +30,12 @@ class Project(db.Model):
         self.end_date = end_date
         self.phase = phase
         self.bim_manager_id = bim_manager_id
+        self.days_budget = days_budget
+        self.budget = self.update_budget()
 
+    def update_budget(self):
+        return self.self.days_budget * 700
+        
 
 
 class Task(db.Model):

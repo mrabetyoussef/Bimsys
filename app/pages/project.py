@@ -14,7 +14,9 @@ from datetime import date, timedelta
 from dash import html
 import dash_bootstrap_components as dbc
 from math import ceil
-
+from dash import Input, Output, State, ctx
+from dash.exceptions import PreventUpdate
+from sqlalchemy.orm import Session
 
 
 
@@ -27,12 +29,12 @@ class ProjectPage:
 
 
     def calculate_jours_par_semaine(self, project):
-        if not (project.start_date and project.end_date):
+        if not (project.start_date and project.end_date and project.days_budget) :
             return None
 
         duration_days = (project.end_date - project.start_date).days
-        nb_semaines = max(1, ceil(duration_days / 7))  # éviter division par 0
-        jours_par_semaine = round(20 / nb_semaines, 2)
+        nb_semaines = max(1, ceil(duration_days / 7))  
+        jours_par_semaine = round(project.days_budget / nb_semaines, 2)
         return jours_par_semaine
 
     def generate_weekly_planning_table_by_month(self, project, selected_month: str = None, jours_par_semaine=None):
@@ -62,16 +64,16 @@ class ProjectPage:
         jours_par_semaine = jours_par_semaine or self.calculate_jours_par_semaine(project)
 
         # Colonnes avec date du lundi
-        week_headers = [html.Th(w["monday"].strftime("%d/%m/%Y")) for w in weeks]
+        week_headers = [html.Th(w["monday"].strftime("%d/%m"), style={"background" : "#f7e279" , "width" : "1px"}) for w in weeks]
 
         # Ligne des jours alloués
-        jours_row = html.Tr([html.Td("Jours alloués")] + [
-            html.Td(f"{jours_par_semaine} j") for _ in weeks
+        jours_row = html.Tr( [
+            html.Td(f"{jours_par_semaine}",style={ "width" : "1px"}) for _ in weeks
         ])
 
    
         return dbc.Table([
-            html.Thead(html.Tr([html.Th("")] + week_headers)),
+            html.Thead(html.Tr( week_headers)),
             html.Tbody([jours_row])
         ], bordered=True, striped=True, hover=True, className="weekly-planning-matrix")
 
@@ -106,26 +108,54 @@ class ProjectPage:
                             [dbc.Card([
                                 dbc.CardHeader(html.H2(project.name, className="card-title")),
                                 dbc.CardBody([
-                                    html.P(f"Code: {project.code_akuiteo}", className="mb-2"),
-                                    html.P(f"Phase: {project.phase}", className="mb-2"),
-                                    html.P(f"Status: {project.status}", className="mb-2"),
-                                    html.P(f"Date de début: {project.start_date}", className="mb-2"),
-                                    html.P(f"Date de fin: {project.end_date}", className="mb-2"),
-                                    html.P(f"BIM Manager: {bim_manager.name}", className="mb-2"),
+                                     dbc.Label("Code Akuiteo"),
+                                    dbc.Input(type="text", value=project.code_akuiteo, id="input-code-akuiteo", disabled=True, className="mb-3"),
+
+                                    dbc.Label("Phase du projet"),
+                                    dbc.Input(type="text", value=project.phase, id="input-phase", className="mb-3"),
+
+                                    dbc.Label("Statut"),
+                                    dbc.Select(
+                                        options=[
+                                            {"label": "En cours", "value": "en cours"},
+                                            {"label": "Terminé", "value": "terminé"},
+                                            {"label": "Non commencé", "value": "non commencé"}
+                                        ],
+                                        value=project.status,
+                                        id="input-status",
+                                        className="mb-3"
+                                    ),
+
+                                    dbc.Label("Date de début"),
+                                    dbc.Input(type="date", value=str(project.start_date), id="input-start-date", className="mb-3"),
+
+                                    dbc.Label("Date de fin"),
+                                    dbc.Input(type="date", value=str(project.end_date), id="input-end-date", className="mb-3"),
+
+                                    dbc.Label("BIM Manager"),
+                                    dbc.Input(type="text", value=bim_manager.name, id="input-bim-manager", disabled=True, className="mb-3"),
+
+                                    dbc.Label("Nombre de jours du projet"),
+                                    dbc.Input(type="number", value=project.days_budget, id="input-days-budget", min=0, className="mb-3"),
+
+                                    dbc.Label("Budget du projet (€)"),
+                                    dbc.Input(type="number", value=project.budget, id="input-budget", min=0, step=0.01, className="mb-3"),
+
+
                                 ])
                             ], style={"box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)", "margin-bottom": "20px"}),
                             dbc.Card([
                             dbc.CardHeader([
                                 html.H5("Planning Prévisionnel du projet", className="mb-2"),
-                                dcc.Dropdown(
-                                    id="project-calendar-month",
-                                    options=[
-                                        {"label": date(2025, m, 1).strftime("%B %Y"), "value": f"2025-{m:02d}"}
-                                        for m in range(1, 13)
-                                    ],
-                                    value=project.start_date.strftime("%Y-%m"),
-                                    clearable=False
-                                )
+                                # dcc.Dropdown(
+                                #     id="project-calendar-month",
+                                #     options=[
+                                #         {"label": date(2025, m, 1).strftime("%B %Y"), "value": f"2025-{m:02d}"}
+                                #         for m in range(1, 13)
+                                #     ],
+                                #     value=project.start_date.strftime("%Y-%m"),
+                                #     clearable=False
+                                # )
                             ]),
                             dbc.CardBody(children=[self.generate_weekly_planning_table_by_month(project=project , selected_month=mois)   for mois in lst_mois],id="calendar-container")
                         ])
@@ -295,3 +325,42 @@ class ProjectPage:
                 return False , self.get_project_tasks(self.project )
             return is_open
         
+        @self.app.callback(
+        Output("calendar-container", "children"),
+        [
+            Input("input-phase", "value"),
+            Input("input-status", "value"),
+            Input("input-start-date", "value"),
+            Input("input-end-date", "value"),
+            Input("input-days-budget", "value"),
+            Input("input-budget", "value"),
+        ],
+        State("input-code-akuiteo", "value"),
+    )
+        def auto_save_project(phase, status, start_date, end_date, days_budget, budget, code):
+            if not ctx.triggered_id:
+                raise PreventUpdate
+
+            project = db.session.query(Project).filter(Project.id == self.project_id).first()
+
+            if not project:
+                raise PreventUpdate
+            
+            project.phase = phase
+            project.status = status
+            project.start_date = datetime.strptime(start_date, "%Y-%m-%d").date() 
+            project.end_date = datetime.strptime(end_date, "%Y-%m-%d").date()  
+            project.days_budget = days_budget
+            project.budget = budget
+            db.session.commit()
+            
+            if ctx.triggered_id in ("input-start-date","input-end-date","input-days-budget"):
+                lst_mois = self.get_month_list( project.start_date, project.end_date)
+                new_calendar = [self.generate_weekly_planning_table_by_month(project=project , selected_month=mois)     for mois in lst_mois]
+                return new_calendar
+            return no_update
+            
+
+            
+        
+            
