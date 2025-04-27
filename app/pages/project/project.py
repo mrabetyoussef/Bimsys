@@ -84,12 +84,37 @@ class ProjectPage:
         current = start_date.replace(day=1)
         while current <= end_date:
             months.append(current.strftime("%Y-%m"))
-            # passer au 1er jour du mois suivant
             if current.month == 12:
                 current = current.replace(year=current.year + 1, month=1)
             else:
                 current = current.replace(month=current.month + 1)
         return months
+
+    def get_project_phases(self, project):
+        if project.phases:
+            phases = [dbc.Row(
+                    html.A(
+                        dbc.Card(
+                            dbc.CardBody([
+                                html.H5(t.name, className="card-title"),
+
+                            ]),
+                            className="card-hover", 
+                            style={
+                                "margin-bottom": "20px",
+                                "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"
+                            }
+                        ),
+                        href=f"/BIMSYS/task/{t.id}",
+                        style={"textDecoration": "none", "color": "inherit"}
+                    ),
+                )
+                for t in project.phases]
+        else : 
+            phases = "Pas encore de phases sur ce projet"
+        ui = dbc.Card([dbc.CardHeader("Phases"), dbc.CardBody(phases)])
+        return ui
+    
 
 
     def layout(self,project_id):
@@ -98,7 +123,6 @@ class ProjectPage:
         self.project_id = project_id
         self.project = Project.query.get(self.project_id)
         lst_mois = self.get_month_list( self.project.start_date,  self.project.end_date)
-        print(list)
         with current_app.app_context():
             project = Project.query.get(self.project_id)
             bim_manager = dbBimUsers.query.filter(dbBimUsers.id ==project.bim_manager_id).one_or_none()
@@ -107,66 +131,50 @@ class ProjectPage:
                 return dbc.Container([self.task_adding_modal(),
                     dbc.Row([
                         dbc.Col(
-                            [dbc.Card([
-                                dbc.CardHeader(html.H2(project.name, className="card-title")),
-                                dbc.CardBody([
-                                     dbc.Label("Code Akuiteo"),
-                                    dbc.Input(type="text", value=project.code_akuiteo, id="input-code-akuiteo", disabled=True, className="mb-3"),
-
-                                    dbc.Label("Phase du projet"),
-                                    dbc.Input(type="text", value=project.phase, id="input-phase", className="mb-3"),
-
-                                    dbc.Label("Statut"),
-                                    dbc.Select(
-                                        options=[
-                                            {"label": "En cours", "value": "en cours"},
-                                            {"label": "Terminé", "value": "terminé"},
-                                            {"label": "Non commencé", "value": "non commencé"}
-                                        ],
-                                        value=project.status,
-                                        id="input-status",
-                                        className="mb-3"
-                                    ),
-
-                                    dbc.Label("Date de début"),
-                                    dbc.Input(type="date", value=str(project.start_date), id="input-start-date", className="mb-3"),
-
-                                    dbc.Label("Date de fin"),
-                                    dbc.Input(type="date", value=str(project.end_date), id="input-end-date", className="mb-3"),
-
-                                    dbc.Label("BIM Manager"),
-                                    dbc.Input(type="text", value=bim_manager.name, id="input-bim-manager", disabled=True, className="mb-3"),
-
-                                    dbc.Label("Nombre de jours du projet"),
-                                    dbc.Input(type="number", value=project.days_budget, id="input-days-budget", min=0, className="mb-3"),
-
-                                    dbc.Label("Budget du projet (€)"),
-                                    dbc.Input(type="number", value=project.budget, id="input-budget", min=0, step=0.01, className="mb-3"),
+                            [
+                            self.project_info(project, bim_manager), 
+                            self.project_planning(lst_mois, project)]),
+                        dbc.Col(
+                            [ self.get_project_phases(project),
+                            self.project_tasks(project)])
+                           ]),
 
 
-                                ])
-                            ], style={"box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)", "margin-bottom": "20px"}),
-                            dbc.Card([
+                    dbc.Row(
+                        dbc.Col(
+                            dbc.Button("Back to Projects", href="/BIMSYS/projects", color="secondary", className="mt-3", size="lg"),
+                            width=12,
+                            className="text-center"
+                        )
+                    )
+                ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
+            
+            return self.project_not_found_ui()
+
+    def project_planning(self, lst_mois, project):
+        return dbc.Card([
                             dbc.CardHeader([
-                                html.H5("Planning Prévisionnel du projet", className="mb-2"),
-                                # dcc.Dropdown(
-                                #     id="project-calendar-month",
-                                #     options=[
-                                #         {"label": date(2025, m, 1).strftime("%B %Y"), "value": f"2025-{m:02d}"}
-                                #         for m in range(1, 13)
-                                #     ],
-                                #     value=project.start_date.strftime("%Y-%m"),
-                                #     clearable=False
-                                # )
+                                html.H5("Planning Prévisionnel du projet", className="mb-2"),                           
                             ]),
                             dbc.CardBody(children=[self.generate_weekly_planning_table_by_month(project=project , selected_month=mois)   for mois in lst_mois],id="calendar-container")
                         ])
-                    
-                            
-                            
-                            ], width=6
-                        ),
-                        dbc.Col(
+
+    def project_not_found_ui(self):
+        return dbc.Container([
+                dbc.Row(
+                    dbc.Col(html.H1("Project Not Found", style={"color": "red"}), width=12)
+                ),
+                dbc.Row(
+                    dbc.Col(
+                        dbc.Button("Back to Projects", href="/BIMSYS/projects", color="secondary", className="mt-3", size="lg"),
+                        width=12,
+                        className="text-center"
+                    )
+                )
+            ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
+
+    def project_tasks(self, project):
+        return dbc.Col(
                             dbc.Card([
                                 dbc.CardHeader(
                                     dbc.Row([
@@ -185,29 +193,39 @@ class ProjectPage:
                                 ),
                                 dbc.CardBody(self.get_project_tasks(project) , id="project-tasks-list")
                             ], style={"box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"}),
-                            width=6
                         )
-                    ], className="g-4"),
-                    dbc.Row(
-                        dbc.Col(
-                            dbc.Button("Back to Projects", href="/BIMSYS/projects", color="secondary", className="mt-3", size="lg"),
-                            width=12,
-                            className="text-center"
-                        )
-                    )
-                ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
-            return dbc.Container([
-                dbc.Row(
-                    dbc.Col(html.H1("Project Not Found", style={"color": "red"}), width=12)
-                ),
-                dbc.Row(
-                    dbc.Col(
-                        dbc.Button("Back to Projects", href="/BIMSYS/projects", color="secondary", className="mt-3", size="lg"),
-                        width=12,
-                        className="text-center"
-                    )
-                )
-            ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
+
+    def project_info(self, project, bim_manager):
+        return dbc.Card([
+                                dbc.CardHeader(html.H2(project.name, className="card-title")),
+                                dbc.CardBody([
+                                     dbc.Label("Code Akuiteo"),
+                                    dbc.Input(type="text", value=project.code_akuiteo, id="input-code-akuiteo", disabled=True, className="mb-3"),
+                                    dbc.Label("Phase du projet"),
+                                    dbc.Input(type="text", value=project.phase, id="input-phase", className="mb-3"),
+                                    dbc.Label("Statut"),
+                                    dbc.Select(
+                                        options=[
+                                            {"label": "En cours", "value": "en cours"},
+                                            {"label": "Terminé", "value": "terminé"},
+                                            {"label": "Non commencé", "value": "non commencé"}
+                                        ],
+                                        value=project.status,
+                                        id="input-status",
+                                        className="mb-3"
+                                    ),
+                                    dbc.Label("Date de début"),
+                                    dbc.Input(type="date", value=str(project.start_date), id="input-start-date", className="mb-3"),
+                                    dbc.Label("Date de fin"),
+                                    dbc.Input(type="date", value=str(project.end_date), id="input-end-date", className="mb-3"),
+                                    dbc.Label("BIM Manager"),
+                                    dbc.Input(type="text", value=bim_manager.name, id="input-bim-manager", disabled=True, className="mb-3"),
+                                    dbc.Label("Nombre de jours du projet"),
+                                    dbc.Input(type="number", value=project.days_budget, id="input-days-budget", min=0, className="mb-3"),
+                                    dbc.Label("Budget du projet (€)"),
+                                    dbc.Input(type="number", value=project.budget, id="input-budget", min=0, step=0.01, className="mb-3"),
+                                ])
+                            ], style={"box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)", "margin-bottom": "20px"})
 
     def task_adding_modal(self):
         users = dbBimUsers.query.all()

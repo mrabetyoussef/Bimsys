@@ -1,0 +1,1 @@
+from app.pages.project.project import ProjectPage
