@@ -17,7 +17,7 @@ from math import ceil
 from dash import Input, Output, State, ctx
 from dash.exceptions import PreventUpdate
 from sqlalchemy.orm import Session
-
+from .project_phases import ProjectPhases
 
 
 class ProjectPage:
@@ -26,7 +26,7 @@ class ProjectPage:
         #self.project = Project.query.get(self.project_id)
         self.app = app
         self.register_callbacks()
-
+        self.project_phases = ProjectPhases(self.app)
 
     def calculate_jours_par_semaine(self, project):
         if not (project.start_date and project.end_date and project.days_budget) :
@@ -90,31 +90,7 @@ class ProjectPage:
                 current = current.replace(month=current.month + 1)
         return months
 
-    def get_project_phases(self, project):
-        if project.phases:
-            phases = [dbc.Row(
-                    html.A(
-                        dbc.Card(
-                            dbc.CardBody([
-                                html.H5(t.name, className="card-title"),
 
-                            ]),
-                            className="card-hover", 
-                            style={
-                                "margin-bottom": "20px",
-                                "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"
-                            }
-                        ),
-                        href=f"/BIMSYS/task/{t.id}",
-                        style={"textDecoration": "none", "color": "inherit"}
-                    ),
-                )
-                for t in project.phases]
-        else : 
-            phases = "Pas encore de phases sur ce projet"
-        ui = dbc.Card([dbc.CardHeader("Phases"), dbc.CardBody(phases)])
-        return ui
-    
 
 
     def layout(self,project_id):
@@ -135,7 +111,7 @@ class ProjectPage:
                             self.project_info(project, bim_manager), 
                             self.project_planning(lst_mois, project)]),
                         dbc.Col(
-                            [ self.get_project_phases(project),
+                            [ self.project_phases.layout(project),
                             self.project_tasks(project)])
                            ]),
 
@@ -276,30 +252,31 @@ class ProjectPage:
         print(match.get(status, "secondary"))
         return match.get(status, "secondary")
     def get_project_tasks(self, project):
-        if project.tasks:
-            return [
-                dbc.Row(
-                    html.A(
-                        dbc.Card(
-                            dbc.CardBody([
-                                html.H5(t.name, className="card-title"),
-                                dbc.Badge(t.status, color=self.get_status_badge_color(t), className="me-1"),
-                                dbc.Badge(t.due_date, color="primary", className="me-1"),
+        # if project.tasks:
+        #     return [
+        #         dbc.Row(
+        #             html.A(
+        #                 dbc.Card(
+        #                     dbc.CardBody([
+        #                         html.H5(t.name, className="card-title"),
+        #                         dbc.Badge(t.status, color=self.get_status_badge_color(t), className="me-1"),
+        #                         dbc.Badge(t.due_date, color="primary", className="me-1"),
 
-                            ]),
-                            className="card-hover", 
-                            style={
-                                "margin-bottom": "20px",
-                                "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"
-                            }
-                        ),
-                        href=f"/BIMSYS/task/{t.id}",
-                        style={"textDecoration": "none", "color": "inherit"}
-                    ),
-                )
-                for t in project.tasks
-            ]
-        return html.Strong("Pas de tâche encore sur ce projet")
+        #                     ]),
+        #                     className="card-hover", 
+        #                     style={
+        #                         "margin-bottom": "20px",
+        #                         "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"
+        #                     }
+        #                 ),
+        #                 href=f"/BIMSYS/task/{t.id}",
+        #                 style={"textDecoration": "none", "color": "inherit"}
+        #             ),
+        #         )
+        #         for t in project.tasks
+        #     ]
+        # return html.Strong("Pas de tâche encore sur ce projet")
+        pass
 
     def register_callbacks(self):
         @self.app.callback(
