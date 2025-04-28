@@ -11,6 +11,20 @@
 
 ## TO DO
 
+-  ### 28/04/2025
+    - ### A faire
+      - Dans la partie réalisation
+        - Rajouter un partie de sur l'implementation de la base de donnée
+        - Rajouter une partie sur la partie réalisation des fonctionalités clés : Comment c'est réalisé/ capture d'écran /
+        - Déploiement
+      - Choix des outils : 
+        - Mettre des liens, quelles versions utilisés ...etc
+      - Sur les utilisés :
+        - Différencié les utilisateurs : à qui est assigné la tâche et celui qui est responsable
+          - super classe et deux types d'utilisateurs 
+      - La gestion des budgets et du temps à expliquer
+
+
 - ### 11/0/2025
   - ### Déja fait
     - Analyse des besoins
