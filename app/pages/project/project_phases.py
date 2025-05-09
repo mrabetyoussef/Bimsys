@@ -56,21 +56,27 @@ class ProjectPhases() :
             ]
         else : 
             phases = "Pas encore de phases sur ce projet"
-        ui = dbc.Card([dbc.CardHeader(["Phases", 
-                        dbc.Button(
-                                                html.I(className="fa fa-plus", style={"color": "blue"}),
+        ui = dbc.Card([dbc.CardHeader(dbc.Row([
+                                        dbc.Col(html.H4("Phases", className="mb-0"), width=10),
+                                        dbc.Col(
+                                            dbc.Button(
+                                               html.I(className="fa fa-plus", style={"color": "blue"}),
                                                 outline=True,
                                                 color="primary",
                                                 id="open-add-project-phase"
-                                            ),]),
-                       
+                                            ),
+                                            width=2,
+                                            className="text-end"
+                                        )
+                                    ], align="center"),),           
+                 
                         dbc.CardBody(phases)])
         return ui
     
     def add_phase_model(self):
         all_phases = dbPhases.query.all() 
         op = [ {"label": p.name, "value": p.id} for p in all_phases ]
-        op.append(   {"label" :"ajouter une nouvelle phase" ,"value" : "add-new-phase" })
+        op.append(   {"label" :"Ajouter une nouvelle phase" ,"value" : "add-new-phase" })
         ui = dbc.Modal([dbc.ModalHeader("Ajouter une phase"),
                         dbc.ModalBody(
                            [dbc.Label("Nom la phase"),
@@ -81,7 +87,7 @@ class ProjectPhases() :
                                         placeholder="Choissisez une phase",
                                     ),
                                
-                           ],
+                           ],id="project-phase-modal-container"
                             
 
 
@@ -92,7 +98,7 @@ class ProjectPhases() :
         @self.app.callback(
            [ 
             Output("add-project-phases-modal", "is_open"),
-            Output("add-project-phases-modal", "children"),
+            Output("project-phase-modal-container", "children"),
             Output("phases-display", "children"),],
 
             Input("open-add-project-phase","n_clicks"),
@@ -110,7 +116,8 @@ class ProjectPhases() :
                 return not modal_state , no_update , no_update
             if ctx in "input-prject-phases" and modal_state :
                 if project_phase_id == "add-new-phase" :
-                    add_phase_modal_children.append(dbc.Col([dbc.Label("Nom de la phase") , dbc.Input(type="text")]))
+                    add_phase_modal_children.append(dbc.Col([dbc.Label("Nom de la phase") , dbc.Input(type="text")],
+                                                                                                    className="mb-3",))
                     return (no_update , add_phase_modal_children , no_update)
                 self.add_project_phase(phase_id=project_phase_id)
                 ui =  self.get_project_phases(self.project)

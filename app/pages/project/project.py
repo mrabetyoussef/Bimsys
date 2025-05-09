@@ -18,7 +18,7 @@ from dash import Input, Output, State, ctx
 from dash.exceptions import PreventUpdate
 from sqlalchemy.orm import Session
 from .project_phases import ProjectPhases
-
+import feffery_antd_components as fac
 
 class ProjectPage:
     def __init__(self,  app):
@@ -41,43 +41,46 @@ class ProjectPage:
         from math import ceil
         from datetime import date
 
-        # Mois courant par défaut
+            # 1) figure out which month to show
         if not selected_month:
             selected_month = date.today().strftime("%Y-%m")
-
         year, month = map(int, selected_month.split("-"))
-        start_of_month = date(year, month, 1)
-        last_day = calendar.monthrange(year, month)[1]
-        end_of_month = date(year, month, last_day)
 
-        # Début au lundi précédent le 1er du mois
-        current = start_of_month - timedelta(days=start_of_month.weekday())
-        weeks = []
+        # 2) format our start/end as ISO strings
+        start_str = project.start_date.strftime("%Y-%m-%d")
+        end_str   = project.end_date.strftime("%Y-%m-%d")
 
-        while current <= end_of_month:
-            weeks.append({
-                "monday": current,
-                "end": current + timedelta(days=6)
-            })
-            current += timedelta(days=7)
+        # 3) build the two “bookend” tags
+        bookend_tags = [
+            {
+                "type":    "date",
+                "month":   project.start_date.month,
+                "date":    project.start_date.day,
+                "content": fac.AntdTag(content="Début", color="success")
+            },
+              {
+                "type":    "date",
+                "month":   project.start_date.month,
+                "date":    project.start_date.day,
+                "content": fac.AntdTag(content="test", color="error")
+            },
+            {
+                "type":    "date",
+                "month":   project.end_date.month,
+                "date":    project.end_date.day,
+                "content": fac.AntdTag(content="Fin", color="error")
+            }
+        ]
 
-        jours_par_semaine = self.calculate_jours_par_semaine(project)
-        if not jours_par_semaine :
-            return html.Strong("Renseinger un budget en jours pour le projet pour afficher le planning")
-
-        # Colonnes avec date du lundi
-        week_headers = [html.Th(w["monday"].strftime("%d/%m"), style={"background" : "#f7e279" , "width" : "1px"}) for w in weeks]
-
-        # Ligne des jours alloués
-        jours_row = html.Tr( [
-            html.Td(f"{jours_par_semaine}",style={ "width" : "1px"}) for _ in weeks
-        ])
-
-   
-        return dbc.Table([
-            html.Thead(html.Tr( week_headers)),
-            html.Tbody([jours_row])
-        ], bordered=True, striped=True, hover=True, className="weekly-planning-matrix")
+        # 4) return the calendar
+        return fac.AntdCalendar(
+            locale="en-us",
+            value=f"{year}-{month:02d}-01",
+            # this will grey out days before start_date and after end_date
+            # tag the exact start and end days
+            customCells=bookend_tags,
+            style={"height": "100%"}
+        )
 
     def get_month_list(self, start_date, end_date):
         months = []
@@ -251,6 +254,7 @@ class ProjectPage:
                        "Terminé" : "success"}
         print(match.get(status, "secondary"))
         return match.get(status, "secondary")
+    
     def get_project_tasks(self, project):
         # if project.tasks:
         #     return [
