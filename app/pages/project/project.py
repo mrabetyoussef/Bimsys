@@ -114,8 +114,7 @@ class ProjectPage:
                             self.project_info(project, bim_manager), 
                             self.project_planning(lst_mois, project)]),
                         dbc.Col(
-                            [ self.project_phases.layout(project),
-                            self.project_tasks(project)])
+                            [ self.project_phases.layout(project)])
                            ]),
 
 
