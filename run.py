@@ -4,7 +4,7 @@ from flask_migrate import upgrade
 from database import manage
 
 with app.app_context():
-    upgrade()  
+    # upgrade()  
     db.create_all() 
 
 if __name__ == "__main__":

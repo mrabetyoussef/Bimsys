@@ -46,5 +46,12 @@
     - Rendu final des deux rapports projets et stages début septembre
     - Rendu provisoir rapport de projet m-juin
 
+- ### 22/05/2025
+
+  - Rajouter plus de diagramme UML séquance , classe 
+    scenario : imaginez quelques scénario et reprsenter avec des diagrammes
+    réalisation : capture d'écran pour monter ces cas d'utilisation
+  - Documentez docker dans la partie impelemntation
+  
 
 

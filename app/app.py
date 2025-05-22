@@ -15,7 +15,7 @@ migrate = Migrate(app, db)
 
 
 login_manager = LoginManager()
-login_manager.login_view = "/login"  # Redirection si non authentifié
+login_manager.login_view = "/BIMSYS/login"
 login_manager.init_app(app)
 
 
@@ -29,12 +29,11 @@ def load_user(user_id):
 def home():
     return redirect(url_for("/BIMSYS/"))  
 
-@app.route("/logout")
+@app.route("/BIMSYS/logout")
 def logout():
-    print("loggginggg outtt")
     logout_user()
-    # on renvoie vers la page de login du dash
-    return redirect("/BIMSYS/lo gin")
+    # redirige bien vers la page de login Dash
+    return redirect("/BIMSYS/login")
 
 DashApp(app)  
 

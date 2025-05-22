@@ -1,6 +1,5 @@
-import dash
 import dash_bootstrap_components as dbc  
-from dash import dcc, html, Input, Output
+from dash import dcc, html, Input, Output , callback_context
 from app.pages.home import HomePage
 from app.pages.projects import ProjectsPage
 from app.pages.project import ProjectPage
@@ -9,7 +8,8 @@ from app.pages.task import TaskPage
 from app.pages.phase import Phase
 from app.pages.login import LoginPage
 import feffery_antd_components as fac
-
+import dash
+from flask_login import current_user
 from app.pages import BimUsers
 
 class DashApp:
@@ -53,15 +53,18 @@ class DashApp:
                                 size='large',
                                 style={'background': '#1890ff', 'cursor': 'pointer'},
                             ),
-                            menuItems=[
-                               {
-                                'title': html.A(
-                                    [html.A(dbc.Button("se déconnecter"), href = "/BIMSYS/phase")],
-                                    href="/logout",
-                                    style={'textDecoration': 'none', 'color': 'inherit'}
-                                )
-                            }
-                            ],
+                             menuItems=[
+        {
+            'title': dbc.Button(
+                [fac.AntdIcon(icon='logout'), " Se déconnecter"],
+                id="logout-button",
+                color="link",
+                n_clicks=0,
+                style={'padding': 0, 'textDecoration': 'none'}
+            )
+        }
+    ],
+
                             trigger='hover',
                             placement='bottomRight',
                         ),
@@ -98,13 +101,20 @@ class DashApp:
         """Handle page navigation inside Dash"""
         @self.dash_app.callback(
             Output("page-content", "children"),
-            Input("url", "pathname") 
+            Input("url", "pathname") ,
+            Input("logout-button", "n_clicks"),
+
         )
-        def display_page(pathname):
-            from flask_login import current_user
-            print(current_user)
+        def display_page(pathname , logout):
+            print("display pages")
+            # print(current_user.name)
+            print( current_user.is_authenticated)
+    
+            ctx = callback_context.triggered_id
+            print(ctx)
+
             if not current_user.is_authenticated and pathname != "/BIMSYS/login" :                
-                content =  self.login_layout
+                return self.login_layout
             if pathname == "/BIMSYS/login":
                 return self.login_layout
             if pathname == "/BIMSYS/projects":
