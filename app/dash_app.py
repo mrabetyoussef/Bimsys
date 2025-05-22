@@ -107,7 +107,6 @@ class DashApp:
         )
         def display_page(pathname , logout):
             print("display pages")
-            # print(current_user.name)
             print( current_user.is_authenticated)
     
             ctx = callback_context.triggered_id
