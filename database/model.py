@@ -2,6 +2,7 @@ import shortuuid
 from database.db import db 
 from sqlalchemy import Float , Boolean
 from datetime import date
+from flask_login import UserMixin
 
 
 
@@ -16,11 +17,11 @@ class ProjectPhase(db.Model):
     id = db.Column(db.String(16), primary_key=True, nullable=False, default=lambda: shortuuid.uuid()[:10])
     project_id = db.Column(db.String(16), db.ForeignKey("projects.id", name="fk_projectphase_project"), nullable=False)
     phase_id = db.Column(db.String(16), db.ForeignKey("phases.id", name="fk_projectphase_phase"), nullable=False)
-
-    # Relations
     project_parent = db.relationship("Project", back_populates="phases")
     phase = db.relationship('Phase', backref='project_phases', lazy=True)
     tasks = db.relationship("Task", back_populates="project_phase", lazy=True)
+    start_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
 
     def __init__(self, project_id, phase_id):
         self.id = shortuuid.uuid()[:10]
@@ -84,14 +85,19 @@ class Task(db.Model):
         self.name = name
         self.description = description
         self.status = status
-        self.assigned_to = assigned_to
-        self.project_id = project_id
+        self.assigned_to = assigned_to        
+        if project_id == None :
+            project_id = ProjectPhase.query.filter(ProjectPhase.id ==project_phase_id).one_or_none().project_id
+            if project_id:
+                self.project_id = project_id
+        else:
+            self.project_id = project_id
         self.project_phase_id = project_phase_id
         self.due_date = due_date
 
 
 
-class BimUsers(db.Model):
+class BimUsers(db.Model, UserMixin):
     __tablename__ = "BimUsers"
 
     id = db.Column(db.String(16), primary_key=True)
@@ -101,6 +107,7 @@ class BimUsers(db.Model):
         db.String(50), nullable=False
     )  
     projects = db.relationship("Project", backref="bim_manager", lazy=True)
+    password = db.Column(db.String(255))
 
     def __init__(self, name, email , role):
         self.id = shortuuid.uuid()[:10] 
