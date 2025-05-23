@@ -125,7 +125,7 @@ class ProjectPage:
                             className="text-center"
                         )
                     )
-                ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
+                ], fluid=True, style={"padding": "30px", "background": "white", "min-height": "100vh"})
             
             return self.project_not_found_ui()
 
@@ -149,7 +149,7 @@ class ProjectPage:
                         className="text-center"
                     )
                 )
-            ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
+            ], fluid=True, style={"padding": "30px", "background": "white", "min-height": "100vh"})
 
     def project_tasks(self, project):
         return dbc.Col(

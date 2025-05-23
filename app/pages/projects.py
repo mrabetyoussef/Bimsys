@@ -39,7 +39,7 @@ class ProjectsPage:
             dbc.Row(id="project-list", children=users_list, className="g-4"),
 
             self.add_project_modal()
-        ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
+        ], fluid=True, style={"padding": "30px", "background": "white", "min-height": "100vh"})
     
     def add_project_modal(self):
         users = dbBimUsers.query.filter(dbBimUsers.role == "BIM MANAGER")

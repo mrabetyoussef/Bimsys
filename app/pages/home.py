@@ -45,7 +45,7 @@ class HomePage:
                             ]),
                  
 
-                ], width=4, style={"background": "#f8f9fa", "padding": "30px", "border-radius": "10px"}),
+                ], width=4, style={"background": "white", "padding": "30px", "border-radius": "10px"}),
 
                 dbc.Col([
                     html.H4("Statistiques Générales", style={"color": "#2c3e50", "margin-bottom": "20px"}),
@@ -108,4 +108,4 @@ class HomePage:
 
             ], className="g-0"),  
 
-        ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
+        ], fluid=True, style={"padding": "30px", "min-height": "100vh"})

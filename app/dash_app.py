@@ -11,6 +11,7 @@ import feffery_antd_components as fac
 import dash
 from flask_login import current_user
 from app.pages import BimUsers
+from database.model import BimUsers as dbBimUser
 
 class DashApp:
 
@@ -33,55 +34,19 @@ class DashApp:
         self.project = ProjectPage(self.dash_app)
         self.taskpage = TaskPage(self.dash_app)
         self.phase = Phase(self.dash_app)
+        
 
-    
-
+        
         self.dash_app.layout = dbc.Container([
             dcc.Location(id="url", refresh=False),
 
-            dbc.Row(
-                [
-                    dbc.Col(
-                        html.H2("BIM SYSTEM", className="mb-0"),
-                        width=True,
-                    ),
-
-                    dbc.Col(
-                        fac.AntdDropdown(
-                            fac.AntdAvatar(
-                                mode = "text", text = "TF",
-                                size='large',
-                                style={'background': '#1890ff', 'cursor': 'pointer'},
-                            ),
-                             menuItems=[
-        {
-            'title': dbc.Button(
-                [fac.AntdIcon(icon='logout'), " Se déconnecter"],
-                id="logout-button",
-                color="link",
-                n_clicks=0,
-                style={'padding': 0, 'textDecoration': 'none'}
-            )
-        }
-    ],
-
-                            trigger='hover',
-                            placement='bottomRight',
-                        ),
-                        width="auto",
-                    ),
-                ],
-                align="center",
-                justify="between",
-                className="py-3 border-bottom"
-            ),
-
+            
             # --- ZONE DE CONTENU ---
             dbc.Row(
                 dbc.Col(
                     html.Div(id="page-content", style={
                         "padding": "30px",
-                        "background": "#ffffff",
+                        "background": "",
                         "border-radius": "10px",
                         "min-height": "80vh"
                     }),
@@ -102,15 +67,10 @@ class DashApp:
         @self.dash_app.callback(
             Output("page-content", "children"),
             Input("url", "pathname") ,
-            Input("logout-button", "n_clicks"),
+            # Input("logout-button", "n_clicks"),
 
         )
-        def display_page(pathname , logout):
-            print("display pages")
-            print( current_user.is_authenticated)
-    
-            ctx = callback_context.triggered_id
-            print(ctx)
+        def display_page(pathname ):
 
             if not current_user.is_authenticated and pathname != "/BIMSYS/login" :                
                 return self.login_layout
@@ -134,36 +94,160 @@ class DashApp:
                 content =  self.phase.layout(phase_id)
             else : 
                 content = HomePage().layout()
-            return dbc.Row([
 
-                dbc.Col(
-                    dbc.Card([
-                        dbc.Nav([
-                            dbc.NavLink([
-                                        html.I(className="fa fa-home me-2"),  
-                                         "Accueil" ], 
-                                        href="/BIMSYS/", active="exact", className="mb-2"),
+            if current_user:
+                email =  current_user.email
+                user_avatar =self.email_to_initials(email)
+            else :
+                user_avatar = ""
 
-                            dbc.NavLink([
-                                html.I(className="fa fa-folder-open me-2"),  
-                                "Projets"
-                            ], href="/BIMSYS/projects", active="exact", className="mb-2"),
+            return self.build_layout(user_avatar,content)
 
-                            dbc.NavLink([
-                                html.I(className="fa fa-folder-open me-2"),  
-                                "Collaborateurs"
-                            ], href="/BIMSYS/collaborateurs", active="exact", className="mb-2"),
-                        ], vertical=True, pills=True),
-                    ], body=True, style={
-                        "height": "100vh",
-                        "background": "#f8f9fa", "padding": "20px"
-                    }),
-                    width=3,
+    def email_to_initials(self,email: str) -> str:
+        """
+        Convert an email address to initials.
+        Example: john.doe@example.com → JD
+                sarah@example.com → S
+        """
+        if not email or "@" not in email:
+            return ""
+
+        username = email.split("@")[0]
+        parts = [p for p in username.replace(".", " ").replace("_", " ").split() if p]
+        initials = "".join(p[0].upper() for p in parts[:2])
+        return initials
+
+
+    def build_layout(self, user_avatar, content):
+        HEADER_HEIGHT = "64px"
+
+        return fac.AntdLayout([
+
+        # ===== HEADER =====
+        fac.AntdHeader(
+            style={
+                "position": "fixed",
+                "top": "0",
+                "left": "0",
+                "margin": "0",
+                "zIndex": 10,
+                "width": "100%",
+                "background": "#fff",
+                "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+                "height": HEADER_HEIGHT,
+                "display": "flex",
+                "alignItems": "center",
+                "padding": "0 16px",
+            },
+            children=dbc.Container(
+                dbc.Row(
+                    [
+                        dbc.Col(html.H2("BIM SYSTEM", className="mb-0"), width="auto"),
+                        dbc.Col(html.Div(), width=True),  # spacer
+                        dbc.Col(
+                            fac.AntdDropdown(
+                                fac.AntdAvatar(
+                                    mode="text",
+                                    text=user_avatar,
+                                    size="large",
+                                    style={"background": "#grey", "cursor": "pointer"}
+                                ),
+                                menuItems=[{
+                                    "title": dbc.Button(
+                                        [fac.AntdIcon(icon="logout"), " Se déconnecter"],
+                                        id="logout-button",
+                                        color="link",
+                                        n_clicks=0,
+                                        style={"padding": 0, "textDecoration": "none"}
+                                    )
+                                }],
+                                trigger="hover",
+                                placement="bottomRight",
+                            ),
+                            width="auto",
+                        ),
+                    ],
+                    align="center",
+                    className="h-100",
                 ),
-                dbc.Col(children =  content , style={"padding": "30px", "background": "#ffffff", "border-radius": "10px"})
+                fluid=True,
+                className="px-0"  # ← remove default horizontal padding
+            )
+        ),
+
+        # ===== MAIN LAYOUT =====
+        fac.AntdLayout([
+
+            # Sidebar (Sider)
+          fac.AntdSider(
+    # wrap the Menu in a list, as per the docs
+    [
+        fac.AntdMenu(
+            menuItems=[
+                {
+                    'component': 'Item',
+                    'props': {
+                        'key': 'home',
+                        'title': 'Accueil',
+                        'icon': 'antd-home',
+                        'href': '/BIMSYS/'
+                    }
+                },
+                {
+                    'component': 'Item',
+                    'props': {
+                        'key': 'projects',
+                        'title': 'Projets',
+                        'icon': 'antd-folder-open',
+                        'href': '/BIMSYS/projects'
+                    }
+                },
+                {
+                    'component': 'Item',
+                    'props': {
+                        'key': 'collaborateurs',
+                        'title': 'Collaborateurs',
+                        'icon': 'antd-team',
+                        'href': '/BIMSYS/collaborateurs'
+                    }
+                },
+            ],
+            mode='inline',                     # vertical menu
+            defaultSelectedKey='home',      # which one is active
+            style={
+                'height': '100%',
+                'overflow': 'hidden auto',
+                'boxShadow': '0 2px 6px rgba(0,0,0,0.1)',
+                'borderRadius': '8px',
+                'backgroundColor': 'white'
+            },
+        )
+    ],
+    collapsible=True,
+    collapsedWidth=60,
+    
+    breakpoint='lg',
+    style={
+        'backgroundColor': 'white',
+        'padding': '60px 0px',
+    },
+),
 
 
+            # Content Area
+            fac.AntdContent(
+                style={
+                    "margin": "20px",
+                    "padding": "30px",
+                    "background": "white",
+                    "borderRadius": "10px",
+                    "boxShadow": "0 2px 6px rgba(0,0,0,0.05)",
+                    "minHeight": f"calc(100vh - {HEADER_HEIGHT})",
+                    "marginTop": HEADER_HEIGHT  
+                },
+                children=content
+            ),
 
+        ], style={"display": "flex"})
 
-
-            ])
+    ])

@@ -93,7 +93,7 @@ class BimUsers:
                     dbc.Button("Ajouter", id="submit-add-user", color="primary"),
                 ])
             ], id="add-user-modal", is_open=False),
-        ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
+        ], fluid=True, style={"padding": "30px", "min-height": "100vh"})
 
 
 

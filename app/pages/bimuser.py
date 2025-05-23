@@ -66,7 +66,7 @@ class BimUser:
                     dbc.Row([
                         dbc.Col(dbc.Button("Back to users", href="/BIMSYS/users", color="secondary", className="mt-3"), width=12)
                     ], className="text-center"),
-                ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
+                ], fluid=True, style={"padding": "30px",  "min-height": "100vh"})
 
         return dbc.Container([
             dbc.Row([
@@ -75,4 +75,4 @@ class BimUser:
             dbc.Row([
                 dbc.Col(dbc.Button("Back to users", href="/BIMSYS/users", color="secondary", className="mt-3"), width=12, className="text-center"),
             ]),
-        ], fluid=True, style={"padding": "30px", "background": "#ecf0f1", "min-height": "100vh"})
+        ], fluid=True, style={"padding": "30px", "background": "white", "min-height": "100vh"})
