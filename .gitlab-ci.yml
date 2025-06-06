@@ -9,7 +9,7 @@ deploy_production:
     - main
   script:
     - echo "Déploiement local dans dossier monté..."   
-    - sudo docker compose -f docker.compose.local.yml build bimsys
-    - sudo docker compose -f docker.compose.local.yml up -d
+    -  docker compose -f docker.compose.local.yml build bimsys
+    -  docker compose -f docker.compose.local.yml up -d
   environment:
     name: production
