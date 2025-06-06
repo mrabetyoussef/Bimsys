@@ -4,12 +4,12 @@ stages:
 deploy_production:
   stage: deploy
   tags:
-    - runner-bimsys
+    - bimsys  # Le tag de ton runner local
   only:
     - main
   script:
     - echo "Déploiement local en cours..."
-    - cd /home/adm-bim/dev/bimsys
+    - cd ~/dev/bimsys
     - git pull
     - sudo docker compose -f docker.compose.local.yml build bimsys
     - sudo docker compose -f docker.compose.local.yml up -d
