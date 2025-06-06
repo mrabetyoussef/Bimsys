@@ -4,7 +4,7 @@ stages:
 deploy_production:
   stage: deploy
   tags:
-    - bimsys  # Le tag de ton runner local
+    - runner-bimsys  # Le tag de ton runner local
   only:
     - main
   script:
