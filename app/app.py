@@ -22,7 +22,7 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return BimUsers.query.get(int(user_id))
+    return BimUsers.query.get((user_id))
 
 
 @app.route("/")

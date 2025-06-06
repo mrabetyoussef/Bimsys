@@ -3,6 +3,7 @@ from dash import html, dcc
 from flask import current_app
 from database.model import Project
 from datetime import datetime, timedelta
+import feffery_antd_components as fac
 
 class HomePage:
    
@@ -22,6 +23,24 @@ class HomePage:
         return dbc.Container([
             dbc.Row([
                 dbc.Col([
+                    
+                fac.AntdBreadcrumb(
+                    items=[
+                        {
+                            'title': 'Accueil',
+                            'href': '/',
+                            'target': '_blank',
+                            'icon': 'antd-home',
+                        },
+                        {
+                            'title': 'feffery-antd-components',
+                            'href': '/',
+                            'target': '_blank',
+                            'icon': 'antd-home',
+                        },
+                     
+                    ]
+                ),
                     html.H1("Bienvenue sur BIMSYS", style={"color": "#2c3e50", "margin-bottom": "20px"}),
                     
                 ], width=12, style={"margin-bottom": "30px"}),

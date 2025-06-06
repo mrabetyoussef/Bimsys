@@ -8,6 +8,8 @@ from app.pages.task import TaskPage
 from app.pages.phase import Phase
 from app.pages.login import LoginPage
 import feffery_antd_components as fac
+from app.pages.user import UserPage
+
 import dash
 from flask_login import current_user
 from app.pages import BimUsers
@@ -34,7 +36,7 @@ class DashApp:
         self.project = ProjectPage(self.dash_app)
         self.taskpage = TaskPage(self.dash_app)
         self.phase = Phase(self.dash_app)
-        
+        self.user = UserPage(self.dash_app)
 
         
         self.dash_app.layout = dbc.Container([
