@@ -7,7 +7,7 @@ deploy_production:
     - main
   script:
     - echo "Déploiement en cours sur le serveur distant..."
-    - apk add --no-cache openssh 
+    - apt-get update && apt-get install -y openssh-client
     - chmod 600 $SSH_PRIVATE_KEY
     - eval $(ssh-agent -s)
     - ssh-add $SSH_PRIVATE_KEY
