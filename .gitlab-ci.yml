@@ -8,11 +8,7 @@ deploy_production:
   only:
     - main
   script:
-    - echo "Déploiement local dans dossier monté..."
-    - cd /mnt/bimsys
-    - ls
-    - git config --global --add safe.directory /mnt/bimsys
-    - git pull
+    - echo "Déploiement local dans dossier monté..."   
     - sudo docker compose -f docker.compose.local.yml build bimsys
     - sudo docker compose -f docker.compose.local.yml up -d
   environment:

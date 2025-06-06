@@ -42,7 +42,7 @@ class DashApp:
             dbc.Row(
                 [
                     dbc.Col(
-                        html.H2("BIM SYSTEM", className="mb-0"),
+                        html.H2("BIM SYSTEM - deployed", className="mb-0"),
                         width=True,
                     ),
 
