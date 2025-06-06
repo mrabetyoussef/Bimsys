@@ -3,24 +3,15 @@ stages:
 
 deploy_production:
   stage: deploy
+  tags:
+    - runner-bimsys
   only:
     - main
-  before_script:
-    - echo "Préparation de la connexion SSH"   
-    - apt-get update && apt-get install -y openssh-client
-    - echo "$SSH_PRIVATE_KEY" > id_rsa
-    - chmod 600 id_rsa
-    - eval $(ssh-agent -s)
-    - ssh-add id_rsa
   script:
-    - echo "Déploiement en cours sur le serveur distant..."   
-    - ssh -p 22  -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'EOF'
-        cd ~/dev/bimsys
-        git pull
-        sudo docker compose -f  docker.compose.local.yml build bimsys
-        sudo docker compose -f  docker.compose.local.yml up -d
-      EOF
-  variables:
-    GIT_STRATEGY: none
+    - echo "Déploiement local en cours..."
+    - cd /home/adm-bim/dev/bimsys
+    - git pull
+    - sudo docker compose -f docker.compose.local.yml build bimsys
+    - sudo docker compose -f docker.compose.local.yml up -d
   environment:
     name: production
