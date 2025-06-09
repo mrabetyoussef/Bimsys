@@ -254,50 +254,50 @@ class BimUsers:
     
 
 
-def notify_subscription(self, name, email, password):
-    mailjet = Client(
-        auth=("1855d6eacbcc8dc12442521492fb8d76", "7afee7a226886cb7362f7102e7e151f5"),  # ou via os.environ
-        version='v3.1'
-    )
+    def notify_subscription(self, name, email, password):
+        mailjet = Client(
+            auth=("1855d6eacbcc8dc12442521492fb8d76", "7afee7a226886cb7362f7102e7e151f5"),  # ou via os.environ
+            version='v3.1'
+        )
 
-    data = {
-                    'Messages': [
-                        {
-                            "From": {
-                                "Email": "mrabetyoussef95@gmail.com",
-                                "Name": "BIMSYS"
-                            },
-                            "To": [
-                                {
-                                    "Email": email,
-                                    "Name": name
-                                }
-                            ],
-                            "Subject": "Vos identifiants BIMSYS",
-                            "TextPart": f"""
-            Bonjour {name},
+        data = {
+                        'Messages': [
+                            {
+                                "From": {
+                                    "Email": "mrabetyoussef95@gmail.com",
+                                    "Name": "BIMSYS"
+                                },
+                                "To": [
+                                    {
+                                        "Email": email,
+                                        "Name": name
+                                    }
+                                ],
+                                "Subject": "Vos identifiants BIMSYS",
+                                "TextPart": f"""
+                Bonjour {name},
 
-            Un compte vient d’être créé pour vous sur la plateforme BIMSYS.
+                Un compte vient d’être créé pour vous sur la plateforme BIMSYS.
 
-            Identifiants :
-            Email : {email}
-            Mot de passe : {password}
+                Identifiants :
+                Email : {email}
+                Mot de passe : {password}
 
-            Connectez-vous ici : https://ton-domaine/BIMSYS/login
+                Connectez-vous ici : https://ton-domaine/BIMSYS/login
 
-            Merci.
-                            """,
-                            "HTMLPart": f"""
-            <h3>Bonjour {name},</h3>
-            <p>Un compte vient d’être créé pour vous sur la plateforme <strong>BIMSYS</strong>.</p>
-            <p><b>Identifiants :</b><br>Email : {email}<br>Mot de passe : {password}</p>
-            <p>➡️ <a href="https://ton-domaine/BIMSYS/login">Cliquez ici pour vous connecter</a></p>
-            <p style="color:#888">Merci,<br>L’équipe BIMSYS</p>
-            """
-                        }
-                    ]
-                }
+                Merci.
+                                """,
+                                "HTMLPart": f"""
+                <h3>Bonjour {name},</h3>
+                <p>Un compte vient d’être créé pour vous sur la plateforme <strong>BIMSYS</strong>.</p>
+                <p><b>Identifiants :</b><br>Email : {email}<br>Mot de passe : {password}</p>
+                <p>➡️ <a href="https://ton-domaine/BIMSYS/login">Cliquez ici pour vous connecter</a></p>
+                <p style="color:#888">Merci,<br>L’équipe BIMSYS</p>
+                """
+                            }
+                        ]
+                    }
 
-    result = mailjet.send.create(data=data)
-    print("Status:", result.status_code)
-    print("Response:", result.json())
+        result = mailjet.send.create(data=data)
+        print("Status:", result.status_code)
+        print("Response:", result.json())
