@@ -201,19 +201,15 @@ class Phase:
     
     def register_callback(self):
         @self.app.callback(
-            # 1) First output is the modal’s open state
-            # 2) Second output is the redirect target
             [
                 Output("delete-phases-modal", "is_open"),
                 Output("redirect", "pathname"),
             ],
-            # three Inputs for the three buttons
             [
                 Input("delete-phase-button",        "n_clicks"),
                 Input("cancel-delete-phase-button", "n_clicks"),
                 Input("validate-delete-phase-button","n_clicks"),
             ],
-            # one State for whether the modal is currently open
             [
                 State("delete-phases-modal", "is_open"),
             ],
@@ -222,7 +218,6 @@ class Phase:
         def delete_phase(n_open, n_cancel, n_validate, is_open):
             ctx = callback_context.triggered_id
 
-            # 1) Trash icon → open modal
             if ctx == "delete-phase-button":
                 return True, no_update
 

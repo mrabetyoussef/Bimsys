@@ -37,6 +37,7 @@ class DashApp:
         self.taskpage = TaskPage(self.dash_app)
         self.phase = Phase(self.dash_app)
         self.user = UserPage(self.dash_app)
+        self.bimUser = BimUser(self.dash_app)
 
         
         self.dash_app.layout = dbc.Container([
@@ -87,7 +88,7 @@ class DashApp:
                 content =  self.bimUsers.layout()
             elif  pathname.startswith("/BIMSYS/bimuser"):
                 bimuser_id = pathname.split("/")[-1]
-                content =  BimUser(bimuser_id).layout()
+                content =  self.bimUser.layout(bimuser_id)
             elif  pathname.startswith("/BIMSYS/task"):
                 task_id = pathname.split("/")[-1]
                 content =  self.taskpage.layout(task_id)

@@ -114,5 +114,5 @@ class BimUsers(db.Model, UserMixin):
         self.name = name
         self.email = email
         self.role = role
-
+        self.password = shortuuid.uuid()[:10] 
 

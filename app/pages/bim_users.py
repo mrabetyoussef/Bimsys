@@ -8,7 +8,8 @@ import pandas as pd
 from dash import dcc
 from dash import callback, Output, Input, ctx, dcc, MATCH , ALL
 import pdb
- 
+from mailjet_rest import Client
+
 
 class BimUsers:
     def __init__(self, app):
@@ -43,6 +44,8 @@ class BimUsers:
 
     def layout(self):
         """Return User List with Add User Modal"""
+            
+
         if self.view_type == "Vue Carte":
             users_list = self.get_user_list()
         else :
@@ -227,7 +230,7 @@ class BimUsers:
                     )
                     db.session.add(new_user)
                     db.session.commit()
-
+                    self.notify_subscription(name , email, new_user.password)
                 users_display = self.get_user_list() if user_view_type == "Vue Carte" else self.get_user_table()
 
                 return (False, None, None, None, users_display)
@@ -248,3 +251,53 @@ class BimUsers:
             if triggered and "index" in triggered:
                 return f"/BIMSYS/bimuser/{triggered['index']}"
             return dash.no_update
+    
+
+
+def notify_subscription(self, name, email, password):
+    mailjet = Client(
+        auth=("1855d6eacbcc8dc12442521492fb8d76", "7afee7a226886cb7362f7102e7e151f5"),  # ou via os.environ
+        version='v3.1'
+    )
+
+    data = {
+                    'Messages': [
+                        {
+                            "From": {
+                                "Email": "mrabetyoussef95@gmail.com",
+                                "Name": "BIMSYS"
+                            },
+                            "To": [
+                                {
+                                    "Email": email,
+                                    "Name": name
+                                }
+                            ],
+                            "Subject": "Vos identifiants BIMSYS",
+                            "TextPart": f"""
+            Bonjour {name},
+
+            Un compte vient d’être créé pour vous sur la plateforme BIMSYS.
+
+            Identifiants :
+            Email : {email}
+            Mot de passe : {password}
+
+            Connectez-vous ici : https://ton-domaine/BIMSYS/login
+
+            Merci.
+                            """,
+                            "HTMLPart": f"""
+            <h3>Bonjour {name},</h3>
+            <p>Un compte vient d’être créé pour vous sur la plateforme <strong>BIMSYS</strong>.</p>
+            <p><b>Identifiants :</b><br>Email : {email}<br>Mot de passe : {password}</p>
+            <p>➡️ <a href="https://ton-domaine/BIMSYS/login">Cliquez ici pour vous connecter</a></p>
+            <p style="color:#888">Merci,<br>L’équipe BIMSYS</p>
+            """
+                        }
+                    ]
+                }
+
+    result = mailjet.send.create(data=data)
+    print("Status:", result.status_code)
+    print("Response:", result.json())

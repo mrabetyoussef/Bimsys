@@ -4,6 +4,7 @@ from flask import current_app
 from database.model import Project
 from datetime import datetime, timedelta
 import feffery_antd_components as fac
+from flask_login import current_user
 
 class HomePage:
    
@@ -20,6 +21,7 @@ class HomePage:
             week_later = today + timedelta(days=7)
             projects_ending_in_week = Project.query.filter(Project.end_date < week_later).filter(Project.end_date > today).all()
             projects_ending_lst = [dbc.Accordion(dbc.AccordionItem(title=p.name , children=[html.P(f"Date de fin {p.end_date}")] ),start_collapsed=True)for p in projects_ending_in_week]
+
         return dbc.Container([
             dbc.Row([
                 dbc.Col([
@@ -33,7 +35,7 @@ class HomePage:
                             'icon': 'antd-home',
                         },
                         {
-                            'title': 'feffery-antd-components',
+                            'title': current_user.name,
                             'href': '/',
                             'target': '_blank',
                             'icon': 'antd-home',

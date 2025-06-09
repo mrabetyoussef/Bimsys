@@ -197,7 +197,7 @@ class ProjectPage:
                                     dbc.Label("Date de fin"),
                                     dbc.Input(type="date", value=str(project.end_date), id="input-end-date", className="mb-3"),
                                     dbc.Label("BIM Manager"),
-                                    dbc.Input(type="text", value=bim_manager.name, id="input-bim-manager", disabled=True, className="mb-3"),
+                                    dbc.Input(type="text", value=bim_manager.name if bim_manager else "Bim manager introuvable", id="input-bim-manager", disabled=True, className="mb-3"),
                                     dbc.Label("Nombre de jours du projet"),
                                     dbc.Input(type="number", value=project.days_budget, id="input-days-budget", min=0, className="mb-3"),
                                     dbc.Label("Budget du projet (€)"),
