@@ -43,7 +43,6 @@ class DashApp:
             dcc.Location(id="url", refresh=False),
 
             
-            # --- ZONE DE CONTENU ---
             dbc.Row(
                 dbc.Col(
                     html.Div(id="page-content", style={
