@@ -40,9 +40,10 @@ class DashApp:
 
         
         self.dash_app.layout = dbc.Container([
+                                                
+
             dcc.Location(id="url", refresh=False),
 
-            
             dbc.Row(
                 dbc.Col(
                     html.Div(id="page-content", style={
@@ -104,12 +105,7 @@ class DashApp:
 
             return self.build_layout(user_avatar,content)
 
-    def email_to_initials(self,email: str) -> str:
-        """
-        Convert an email address to initials.
-        Example: john.doe@example.com → JD
-                sarah@example.com → S
-        """
+    def email_to_initials(self,email: str) -> str:     
         if not email or "@" not in email:
             return ""
 
@@ -124,7 +120,6 @@ class DashApp:
 
         return fac.AntdLayout([
 
-        # ===== HEADER =====
         fac.AntdHeader(
             style={
                 "position": "fixed",
@@ -144,7 +139,7 @@ class DashApp:
                 dbc.Row(
                     [
                         dbc.Col(html.H2("BIM SYSTEM", className="mb-0"), width="auto"),
-                        dbc.Col(html.Div(), width=True),  # spacer
+                        dbc.Col(html.Div(), width=True),  
                         dbc.Col(
                             fac.AntdDropdown(
                                 fac.AntdAvatar(
@@ -154,13 +149,12 @@ class DashApp:
                                     style={"background": "#grey", "cursor": "pointer"}
                                 ),
                                 menuItems=[{
-                                    "title": dbc.Button(
-                                        [fac.AntdIcon(icon="logout"), " Se déconnecter"],
-                                        id="logout-button",
-                                        color="link",
-                                        n_clicks=0,
-                                        style={"padding": 0, "textDecoration": "none"}
-                                    )
+                                     
+                                        "title": "Se déconnecter",
+                                        "icon": "antd-folder-open",
+                                        "href": "/BIMSYS/logout",
+                                        "target": "_self"
+                                    
                                 }],
                                 trigger="hover",
                                 placement="bottomRight",
@@ -172,16 +166,13 @@ class DashApp:
                     className="h-100",
                 ),
                 fluid=True,
-                className="px-0"  # ← remove default horizontal padding
+                className="px-0"  
             )
         ),
 
-        # ===== MAIN LAYOUT =====
         fac.AntdLayout([
 
-            # Sidebar (Sider)
           fac.AntdSider(
-    # wrap the Menu in a list, as per the docs
     [
         fac.AntdMenu(
             menuItems=[
@@ -213,8 +204,8 @@ class DashApp:
                     }
                 },
             ],
-            mode='inline',                     # vertical menu
-            defaultSelectedKey='home',      # which one is active
+            mode='inline',                     
+            defaultSelectedKey='home',      
             style={
                 'height': '100%',
                 'overflow': 'hidden auto',
@@ -235,7 +226,6 @@ class DashApp:
 ),
 
 
-            # Content Area
             fac.AntdContent(
                 style={
                     "margin": "20px",
