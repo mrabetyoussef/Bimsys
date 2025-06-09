@@ -1,0 +1,16 @@
+stages:
+  - deploy
+
+deploy_production:
+  stage: deploy
+  tags:
+    - runner-bimsys  # Le tag de ton runner local
+  only:
+    - main
+  script:
+    - echo "Déploiement local dans dossier monté..."  
+     
+    -  docker compose -f docker.compose.local.yml build bimsys
+    -  docker compose -f docker.compose.local.yml up -d
+  environment:
+    name: production
