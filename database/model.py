@@ -22,6 +22,11 @@ class ProjectPhase(db.Model):
     tasks = db.relationship("Task", back_populates="project_phase", lazy=True)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
+    days_budget = db.Column(Float)
+    euros_budget = db.Column(Float)
+    assigned_bimuser_id = db.Column(db.String(16), db.ForeignKey("BimUsers.id", name="fk_projectphase_user"))
+    assigned_bimuser = db.relationship("BimUsers")
+
 
     def __init__(self, project_id, phase_id):
         self.id = shortuuid.uuid()[:10]

@@ -1,10 +1,10 @@
 import dash_bootstrap_components as dbc
 from dash import html
 from sqlalchemy.orm import joinedload
-from database.model import ProjectPhase as dbProjectPhase, Phase as dbPhase , Task as dbTask
+from database.model import ProjectPhase as dbProjectPhase, Phase as dbPhase , Task as dbTask , BimUsers as dbBimusers
 from database.db import db
 from dash import html, dcc, Input, Output, State, callback_context , no_update
-#
+from datetime import datetime
 
 class Phase:
     def __init__(self, app):
@@ -53,6 +53,7 @@ class Phase:
                     ),
                     dbc.CardBody(children=self.get_project_phase_tasks(project_phase),id='tasks-display'),
                 ], ), ),self.add_task_modal()
+            
             ])
         ], fluid=True)
 
@@ -114,6 +115,10 @@ class Phase:
 
 
     def phase_info(self, project_phase):
+
+        bim_users = dbBimusers.query.filter(dbBimusers.role == "BIM MANAGER").all()
+        options=[ {"label": u.name, "value": u.id} for u in bim_users  ]
+        options.append( {"label": "None", "value":"None"} )
         return html.Div([
             dbc.Label("Projet associé"),
             dbc.Input(type="text", value=project_phase.project_parent.name, disabled=True, className="mb-3"),
@@ -128,6 +133,21 @@ class Phase:
                     dbc.Input(type="date", value=str(project_phase.end_date), id="input-phase-end-date", className="mb-3")
                 ])
             ]),
+
+            dbc.Label("Bim Manager"),
+
+            dbc.Select(    
+                        id="input-phase-bim-manager",
+                        options=options,
+                        value=project_phase.assigned_bimuser.id if project_phase.assigned_bimuser else "None" ,
+                        className="mb-3"    
+                    ),
+
+            dbc.Label("Budget en nombre de jours"),
+            dbc.Input(id="input-phase-days-budget", type="number", value=project_phase.days_budget, className="mb-3"),
+
+            dbc.Label("Budget en euros"),
+            dbc.Input(id="input-phase-euros-budget", type="number", value=project_phase.euros_budget, className="mb-3"),
 
             dbc.Label("Nombre de tâches associées"),
             dbc.Input(type="number", value=len(project_phase.tasks), disabled=True, className="mb-3"),
@@ -250,9 +270,11 @@ class Phase:
             if open_click or close_click or submit_click:
                 return not is_open
             return is_open
+        
+
         @self.app.callback(
             # Output("redirect", "pathname", allow_duplicate=True),  # Pour forcer le refresh ou rediriger
-            Output("tasks-display", "children"),  # Pour forcer le refresh ou rediriger
+            Output("tasks-display", "children"),  
 
             Input("submit-task", "n_clicks"),
             [
@@ -291,3 +313,41 @@ class Phase:
             db.session.commit()
 
             return self.get_project_phase_tasks(project_phase)
+
+
+        @self.app.callback(
+        Output("delete-phase-dummy", "children"),  # neutre
+        [
+            Input("input-phase-start-date", "value"),
+            Input("input-phase-end-date", "value"),
+            Input("input-phase-days-budget", "value"),
+            Input("input-phase-euros-budget", "value"),
+            Input("input-phase-bim-manager", "value"),
+        ],
+        prevent_initial_call=True
+)
+        def update_phase_data(start_date, end_date, days_budget, euros_budget, bim_manager_id):
+            project_phase = dbProjectPhase.query.get(self.project_phase_id)
+           
+            try:
+                if start_date:
+                    project_phase.start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            except Exception:
+                pass
+
+            try:
+                if end_date:
+                    project_phase.end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            except Exception:
+                pass
+
+            if days_budget is not None:
+                project_phase.days_budget = days_budget
+
+            if euros_budget is not None:
+                project_phase.euros_budget = euros_budget
+
+            if bim_manager_id:
+                project_phase.assigned_bimuser_id = bim_manager_id
+            db.session.commit()
+            return ""

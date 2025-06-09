@@ -110,18 +110,19 @@ class HomePage:
                     dbc.Card([
                         dbc.CardBody([
                             html.H5("Répartition des Projets", className="card-title"),
-                            dcc.Graph(
-                                figure={
-                                    "data": [
-                                        {"values": [projects_count, completed_projects], 
-                                         "labels": ["En cours", "Terminés"], 
-                                         "type": "pie", "hole": 0.4,
-                                         "marker": {"colors": ["#3498db", "#2ecc71"]},
-                                         "hoverinfo": "label+percent"},
-                                    ],
-                                    "layout": {"showlegend": True, "height": 300}
-                                }
-                            ),
+                            # dcc.Graph(
+                            #     figure={
+                            #         "data": [
+                            #             {"values": [projects_count, completed_projects], 
+                            #              "labels": ["En cours", "Terminés"], 
+                            #              "type": "pie", "hole": 0.4,
+                            #              "marker": {"colors": ["#3498db", "#2ecc71"]},
+                            #              "hoverinfo": "label+percent"},
+                            #         ],
+                            #         "layout": {"showlegend": True, "height": 300}
+                            #     }
+                            # ),
+                            self.plan_charge()
                         ])
                     ], style={"border-radius": "10px", "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"}),
 
@@ -130,3 +131,9 @@ class HomePage:
             ], className="g-0"),  
 
         ], fluid=True, style={"padding": "30px", "min-height": "100vh"})
+
+    def plan_charge(self,):
+        from database.model import BimUsers
+        bu = BimUsers.query.all()
+        ui = html.Div(dbc.ListGroup([dbc.ListGroupItem(u.name ,"projects") for u in bu]))
+        return ui

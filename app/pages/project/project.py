@@ -19,6 +19,8 @@ from dash.exceptions import PreventUpdate
 from sqlalchemy.orm import Session
 from .project_phases import ProjectPhases
 import feffery_antd_components as fac
+import full_calendar_component as fcc
+import random
 
 class ProjectPage:
     def __init__(self,  app):
@@ -37,50 +39,58 @@ class ProjectPage:
         jours_par_semaine = round(project.days_budget / nb_semaines, 2)
         return jours_par_semaine
 
-    def generate_weekly_planning_table_by_month(self, project, selected_month: str = None, jours_par_semaine=None):
-        from math import ceil
-        from datetime import date
 
-            # 1) figure out which month to show
-        if not selected_month:
-            selected_month = date.today().strftime("%Y-%m")
-        year, month = map(int, selected_month.split("-"))
-
-        # 2) format our start/end as ISO strings
-        start_str = project.start_date.strftime("%Y-%m-%d")
-        end_str   = project.end_date.strftime("%Y-%m-%d")
-
-        # 3) build the two “bookend” tags
-        bookend_tags = [
+    def generate_weekly_planning_table_by_month(self, project):
+        # Date du jour au format ISO
+        formatted_date = datetime.now().date().isoformat()
+        COLOR_CLASSES = [
+            "bg-gradient-primary",
+            "bg-gradient-secondary",
+            "bg-gradient-success",
+            "bg-gradient-danger",
+            "bg-gradient-warning",
+            "bg-gradient-info",
+            "bg-gradient-light",
+            "bg-gradient-dark",
+        ]
+        # Génération des événements à partir des phases du projet
+        new_events = [
             {
-                "type":    "date",
-                "month":   project.start_date.month,
-                "date":    project.start_date.day,
-                "content": fac.AntdTag(content="Début", color="success")
-            },
-              {
-                "type":    "date",
-                "month":   project.start_date.month,
-                "date":    project.start_date.day,
-                "content": fac.AntdTag(content="test", color="error")
-            },
-            {
-                "type":    "date",
-                "month":   project.end_date.month,
-                "date":    project.end_date.day,
-                "content": fac.AntdTag(content="Fin", color="error")
+                "title": project_phase.phase.name,
+                "start": datetime.strptime(str(project_phase.start_date), "%Y-%m-%d").date().isoformat(),
+                "end": datetime.strptime(str(project_phase.end_date), "%Y-%m-%d").date().isoformat(),
+                "className": random.choice(COLOR_CLASSES),
+
             }
+            for project_phase in project.phases
+            if project_phase.start_date and project_phase.end_date
         ]
 
-        # 4) return the calendar
-        return fac.AntdCalendar(
-            locale="en-us",
-            value=f"{year}-{month:02d}-01",
-            # this will grey out days before start_date and after end_date
-            # tag the exact start and end days
-            customCells=bookend_tags,
-            style={"height": "100%"}
+        return html.Div(
+            fcc.FullCalendarComponent(
+                id="calendar",
+                initialView="dayGridMonth",  # ou "dayGridWeek" si tu veux la vue hebdo
+                headerToolbar={
+                    "left": "prev,next today",
+                    "center": "title",
+                    "right": "listWeek,timeGridDay,timeGridWeek,dayGridMonth",
+                },
+                initialDate=formatted_date,
+                editable=False,
+                selectable=True,
+                events=new_events,
+                nowIndicator=True,
+                navLinks=True,
+                
+            ),
+             style={
+        "height": "600px",          
+        "overflow": "auto",         
+        "border": "1px solid #ccc", 
+        "padding": "10px",
+    }
         )
+
 
     def get_month_list(self, start_date, end_date):
         months = []
@@ -134,7 +144,7 @@ class ProjectPage:
                             dbc.CardHeader([
                                 html.H5("Planning Prévisionnel du projet", className="mb-2"),                           
                             ]),
-                            dbc.CardBody(children=[self.generate_weekly_planning_table_by_month(project=project , selected_month=mois)   for mois in lst_mois],id="calendar-container")
+                            dbc.CardBody(children=[self.generate_weekly_planning_table_by_month(project=project)  ],id="calendar-container")
                         ])
 
     def project_not_found_ui(self):

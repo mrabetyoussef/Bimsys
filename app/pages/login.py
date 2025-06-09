@@ -1,10 +1,11 @@
 # app/pages/login.py
 
-from dash import html, Input, Output, State, no_update
+from dash import html, Input, Output, State, no_update , callback_context
 import dash_bootstrap_components as dbc
 from flask_login import login_user , logout_user
 from database.model import BimUsers
 from flask import redirect
+
 
 
 class LoginPage:
@@ -48,11 +49,20 @@ class LoginPage:
             State("login-password", "value"),
             prevent_initial_call=True
         )
+
         def handle_login(n_clicks, email, password):
-            print("logging in ")
             user = BimUsers.query.filter(BimUsers.email == email).first()
-            print(user)
-            if user and  password:
-                login_user(user)
-                return "", "/BIMSYS/"  # redirige vers l'accueil
-            return "Identifiant ou mot de passe incorrect", no_update
+            ctx = callback_context.triggered_id
+            if ctx == 'login-button' : 
+                if user and  password:
+                    login_user(user)
+                    return "", "/BIMSYS/"  
+                elif user and not password:
+                    return "Identifiant ou mot de passe incorrect", no_update
+                elif not user  and email :
+                    return "Identifiant ou mot de passe incorrect", no_update
+                else :
+                    return no_update,no_update
+            else :
+                print("nothing")
+                return "no_update",no_update
