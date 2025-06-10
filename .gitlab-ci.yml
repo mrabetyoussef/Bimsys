@@ -1,22 +1,27 @@
 stages:
-  - deploy
+  - build
 
-deploy_production:
-  stage: deploy
+build_app:
+  stage: build
   tags:
     - runner-bimsys
-  only:
-    - main
-  image: docker/compose:1.29.2
+  image: docker:20.10.16
+
+  services:
+    - docker:dind
+
   variables:
-    DOCKER_HOST: unix:///var/run/docker.sock
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: tcp://docker:2375
+
   script:
-    - echo "Déploiement local dans dossier monté..."
+    - apk add --no-cache py3-pip
+    - pip install docker-compose
     - docker info
     - docker-compose -f docker.compose.local.yml up -d --build
+
+  only:
+    - main
+
   environment:
     name: production
-  before_script:
-    - whoami
-    - id
-  privileged: true
