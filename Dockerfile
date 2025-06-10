@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["python3", "run.py"]
+CMD ["python3", "/bimsys/run.py"]
