@@ -4,16 +4,19 @@ stages:
 deploy_production:
   stage: deploy
   tags:
-    - runner-bimsys 
+    - runner-bimsys
   only:
     - main
-  script:
-    - echo "Déploiement local dans dossier monté..."  
-     
-    -  docker-compose -f docker.compose.local.yml up -d --build
+  image: docker/compose:1.29.2
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
+  script:
+    - echo "Déploiement local dans dossier monté..."
+    - docker info
+    - docker-compose -f docker.compose.local.yml up -d --build
   environment:
     name: production
+  before_script:
+    - whoami
+    - id
   privileged: true
-  #test
