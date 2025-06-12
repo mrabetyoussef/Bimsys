@@ -111,13 +111,27 @@ class BimUsers(db.Model, UserMixin):
     role = db.Column(
         db.String(50), nullable=False
     )  
-    projects = db.relationship("Project", backref="bim_manager", lazy=True)
+    projects = db.relationship("Project", backref="bim_manager", lazy=True )
     password = db.Column(db.String(255))
 
-    def __init__(self, name, email , role):
+    def __init__(self, name, email , role, password=None):
         self.id = shortuuid.uuid()[:10] 
         self.name = name
         self.email = email
         self.role = role
-        self.password = shortuuid.uuid()[:10] 
+        self.password = password or shortuuid.uuid()[:10] 
 
+
+    @staticmethod
+    def create_default_admin():
+        existing_admin = BimUsers.query.filter_by(email="admin").first()
+        print("existing_admin",existing_admin)
+        if not existing_admin:
+            admin = BimUsers(
+                name="Admin",
+                email="admin",
+                role="Manager",
+                password="admin" 
+            )
+            db.session.add(admin)
+            db.session.commit()
