@@ -6,7 +6,7 @@ from app.dash_app import DashApp
 from flask_login import LoginManager , logout_user
 from flask_mail import Mail
 
-
+name = __name__
 app = Flask(__name__)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///bimsys.db"

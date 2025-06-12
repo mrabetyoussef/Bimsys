@@ -5,6 +5,7 @@ from database.model import ProjectPhase as dbProjectPhase, Phase as dbPhase , Ta
 from database.db import db
 from dash import html, dcc, Input, Output, State, callback_context , no_update
 from datetime import datetime
+from datetime import date, timedelta
 
 class Phase:
     def __init__(self, app):
@@ -23,39 +24,183 @@ class Phase:
 
         return dbc.Container([
             dbc.Row([
-                dbc.Col(dbc.Card([
-                    dbc.CardHeader(
-                        dbc.Row([
-                            dbc.Col(html.H4(f"Phase : {phase.name}", className="mb-0")),
-                            dbc.Col(
-                                dbc.Button(html.I(className="fa fa-trash"), color="outline-danger", id="delete-phase-button", title="Supprimer la phase"),
-                                width="auto",
-                                className="text-end"
-                            ),
-                            html.Div(id="delete-phase-dummy"),
-                            self.delete_phase_modal()
-                        ], align="center")
-                    ),
-                    dbc.CardBody(self.phase_info(project_phase)),
-                    dcc.Location(id="redirect", refresh=True),
-                ], style={"margin": "20px"}), width=4),
+                # === Colonne Phase ===
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader(
+                            dbc.Row([
+                                dbc.Col(html.H4(f"Phase : {phase.name}", className="mb-0")),
+                                dbc.Col(
+                                    dbc.Button(
+                                        html.I(className="fa fa-trash"),
+                                        color="outline-danger",
+                                        id="delete-phase-button",
+                                        title="Supprimer la phase"
+                                    ),
+                                    width="auto",
+                                    className="text-end"
+                                ),
+                                html.Div(id="delete-phase-dummy"),
+                                self.delete_phase_modal()
+                            ], align="center")
+                        ),
+                        dbc.CardBody(self.phase_info(project_phase)),
+                        dcc.Location(id="redirect", refresh=True),
+                    ], style={"margin": "20px"}),
 
-                dbc.Col(dbc.Card([
-                    dbc.CardHeader(
-                        dbc.Row([
-                            dbc.Col(html.H4("Tâches liées", className="mb-0")),
-                            dbc.Col(
-                                dbc.Button(html.I(className="fa fa-plus"), color="outline-primary", id="add-project-task", title="Ajouter une tâche"),
-                                width="auto",
-                                className="text-end"
+                    # === Calendrier sous la colonne Phase ===
+                    dbc.Card([
+                        dbc.CardHeader(html.H5("Calendrier des semaines")),
+                        dbc.CardBody(
+                            html.Div(
+                                self.construire_calendrier_dash(project_phase),
+                                style={
+                                    "overflowX": "auto",
+                                    "whiteSpace": "nowrap",
+                                    "border": "1px solid #ddd",
+                                    "padding": "10px"
+                                } , id='phase-calendar-container'
                             )
-                        ], align="center")
-                    ),
-                    dbc.CardBody(children=self.get_project_phase_tasks(project_phase),id='tasks-display'),
-                ], ), ),self.add_task_modal()
-            
+                        )
+                    ], style={"margin": "20px"})
+                ], width=4),
+
+                # === Colonne Tâches liées ===
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader(
+                            dbc.Row([
+                                dbc.Col(html.H4("Tâches liées", className="mb-0")),
+                                dbc.Col(
+                                    dbc.Button(
+                                        html.I(className="fa fa-plus"),
+                                        color="outline-primary",
+                                        id="add-project-task",
+                                        title="Ajouter une tâche"
+                                    ),
+                                    width="auto",
+                                    className="text-end"
+                                )
+                            ], align="center")
+                        ),
+                        dbc.CardBody(
+                            children=self.get_project_phase_tasks(project_phase),
+                            id='tasks-display'
+                        )
+                    ], style={"margin": "20px"}),
+                    self.add_task_modal()
+                ])
             ])
         ], fluid=True)
+
+
+    def get_weeks_number(self,project_phase) :
+        current = project_phase.start_date - timedelta(days=project_phase.start_date.weekday())
+        lundis = []
+
+        while current <= project_phase.end_date:
+            lundis.append(current)
+            current += timedelta(weeks=1)
+
+        return (lundis)
+
+    def construire_calendrier_dash(self,project_phase):
+
+        lundis = self.get_weeks_number(project_phase)
+
+        nb_semaines = len(lundis)
+
+        ligne_dates = html.Tr(
+            [html.Th("")] + [html.Th(lundi.strftime("%d/%m")) for lundi in lundis]
+        )
+
+        ligne_jours = html.Tr(
+            [html.Td("sem")] + [html.Td("Lun") for _ in lundis]
+        )
+
+        ligne_semaines = html.Tr(
+            [html.Td("")] + [html.Td(str(lundi.isocalendar()[1])) for lundi in lundis]
+        )
+
+        ligne_semaines = html.Tr(
+            [html.Td("")] + [html.Td(str(lundi.isocalendar()[1])) for lundi in lundis]
+        )
+        if nb_semaines :
+            charge_hebdo = round(project_phase.days_budget / nb_semaines, 2) 
+
+            ligne_charge = html.Tr([html.Td("Charge")] + [
+                html.Td(str(charge_hebdo)) for _ in lundis
+            ])
+        else: 
+            ligne_charge = None
+
+
+        tasks = project_phase.tasks or []
+        ligne_cercles = html.Tr([html.Td("Tâches")])
+        for lundi in lundis:
+            dimanche = lundi + timedelta(days=6)
+
+            # On récupère une tâche (la première) qui finit cette semaine
+            tache_semaine = next(
+                (task for task in tasks if task.due_date and lundi <= task.due_date <= dimanche),
+                None
+            )
+
+            if tache_semaine:
+                task_info =f"""
+                        Nom de la tâche  : {tache_semaine.name}\n
+                        description :{tache_semaine.description }\n
+                        status :{tache_semaine.status }\n
+                        assigned_to :{tache_semaine.assigned_to}\n
+
+                """
+                cercle_id = f"cp_{tache_semaine.id}"
+                cercle = html.Div([
+                    html.Div(id=cercle_id, style={
+                        "width": "12px",
+                        "height": "12px",
+                        "borderRadius": "50%",
+                        "backgroundColor": "#007bff",
+                        "display": "inline-block",
+                        "margin": "auto"
+                    }),
+                    dbc.Tooltip(
+                        target=cercle_id,
+                        children=task_info,
+                        placement="top"
+                    )
+                ])
+            else:
+                cercle = ""
+
+            ligne_cercles.children.append(
+                html.Td(cercle, style={"color": "#007bff", "fontSize": "18px"})
+            )
+
+
+
+        lignes = [ligne_dates, ligne_jours, ligne_semaines]
+        if ligne_charge:
+            lignes.append(ligne_charge)
+        lignes.append(ligne_cercles)
+
+        table = html.Table(
+            lignes,
+            className="table table-bordered",
+            style={"minWidth": f"{len(lundis)*70}px", "textAlign": "center"}
+        )
+
+        scrollable_container = html.Div(
+            table,
+          
+        )
+
+        return dbc.Row(
+            dbc.Col(scrollable_container),
+            className="mb-4"
+        )
+
+
 
     def add_task_modal(self):
         return dbc.Modal([
@@ -134,6 +279,10 @@ class Phase:
                 ])
             ]),
 
+            dbc.Label("Durée (sem.)"),
+            dbc.Input(type="text", value=str(len(self.get_weeks_number(project_phase))), disabled=True, className="mb-3"),
+            dbc.Label("répartition par semaine"),
+            dbc.Input(type="text", value=str(round(project_phase.days_budget/len(self.get_weeks_number(project_phase)),2)), disabled=True, className="mb-3"),
             dbc.Label("Bim Manager"),
 
             dbc.Select(    
@@ -316,7 +465,8 @@ class Phase:
 
 
         @self.app.callback(
-        Output("delete-phase-dummy", "children"),  # neutre
+        Output("delete-phase-dummy", "children"), 
+         Output("phase-calendar-container", "children"), 
         [
             Input("input-phase-start-date", "value"),
             Input("input-phase-end-date", "value"),
@@ -343,11 +493,14 @@ class Phase:
 
             if days_budget is not None:
                 project_phase.days_budget = days_budget
-
+                # db.session.commit()
+                # return "" , self.construire_calendrier_dash(project_phase=project_phase)
+                
             if euros_budget is not None:
                 project_phase.euros_budget = euros_budget
 
             if bim_manager_id:
                 project_phase.assigned_bimuser_id = bim_manager_id
             db.session.commit()
-            return ""
+
+            return "" , self.construire_calendrier_dash(project_phase=project_phase)

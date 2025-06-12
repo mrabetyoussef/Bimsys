@@ -55,3 +55,25 @@
   
 
 
+- ### 12/06/2025
+  
+  - ### A faire
+  
+    - A rajouter sur le rapport d'actvité
+      Chaptires 1 
+      - Le contexte et le cadre de la mission dans l'équipe DATA
+      - Décrire le projet , les objectifs , quel sont les parties concerné par l'outil
+      - Décomposé le projet et définir les briques sur lesquelles j'interviens 
+    - Chaptires 2
+      - Rentrer en détail les missions que j'ai fait et les briques  
+  
+  -  a rajouter sur le rapport de projet
+     -  Aspect sur la securité 
+        -  Adminisatration de l'application
+        -  authentification
+     -  Scénario à mettre avec capture d'écran : 
+        -  du debut vers la fin
+     -  montrer le passage du schéma conceptuel au schéma physique à l'implementation de la BD
+     -  Reprendre Back/front et base de donnée  la partie impelementation
+
+  - Compétences acquises suite à tous ce travail 
