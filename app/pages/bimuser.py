@@ -31,7 +31,6 @@ class BimUser:
         ])
 
     def layout(self, user_id):
-        """Return a Single user View with Enhanced UI"""
         self.user_id = user_id
 
         with current_app.app_context():
@@ -52,27 +51,30 @@ class BimUser:
                         centered=True,
                         is_open=False,
                     ),
-                    dcc.Location(id="redirect-1", refresh=True), 
+                    dcc.Location(id="redirect-1", refresh=True),
                     dbc.Row([
                         dbc.Col(dbc.Card([
                             dbc.CardHeader([
-                                html.H3("Informations"),
-                                dbc.Col(
-                                    dbc.Button(html.I(className="fa fa-trash"), color="outline-danger", id="delete-user-button"),
-                                    width="auto",
-                                    className="text-end"
-                                )
+                                html.H3("Informations utilisateur"),
+                                dbc.Button(html.I(className="fa fa-trash"), color="outline-danger", id="delete-user-button", className="float-end")
                             ]),
                             dbc.CardBody([
-                                dbc.ListGroupItem(
-                                    dbc.Row([html.Strong("NOM"), html.P(user.name)], align="center")
-                                ),
-                                dbc.ListGroupItem(
-                                    dbc.Row([html.Strong("Email"), html.P(user.email)], align="center")
-                                ),
-                                dbc.ListGroupItem(
-                                    dbc.Row([html.Strong("Fonction"), html.P(user.role)], align="center")
-                                ),
+
+                                dbc.Label("Nom"),
+                                dbc.Input(type="text", value=user.name, disabled=True, className="mb-3"),
+
+                                dbc.Label("Email"),
+                                dbc.Input(type="email", value=user.email, disabled=True, className="mb-3"),
+
+                                dbc.Label("Rôle"),
+                                dbc.Input(type="text", value=user.role, disabled=True, className="mb-3"),
+
+                                dbc.Label("Nombre de projets assignés"),
+                                dbc.Input(type="number", value=len(user.projects), disabled=True, className="mb-3"),
+                                
+                                dbc.Label("Taj (valeur modifiable)"),
+                                dbc.Input(id="input-user-taj", type="number", value=user.taj, className="mb-3"),
+
                             ])
                         ], style={"box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)", "margin-bottom": "20px"}), width=6),
 
@@ -85,16 +87,16 @@ class BimUser:
                     ], className="g-4"),
 
                     dbc.Row([
-                        dbc.Col(dbc.Button("Back to users", href="/BIMSYS/users", color="secondary", className="mt-3"), width=12)
+                        dbc.Col(dbc.Button("Retour aux utilisateurs", href="/BIMSYS/users", color="secondary", className="mt-3"), width=12)
                     ], className="text-center"),
                 ], fluid=True, style={"padding": "30px", "min-height": "100vh"})
 
         return dbc.Container([
             dbc.Row([
-                dbc.Col(html.H1("User Not Found", style={"color": "red"}), width=12),
+                dbc.Col(html.H1("Utilisateur introuvable", style={"color": "red"}), width=12),
             ]),
             dbc.Row([
-                dbc.Col(dbc.Button("Back to users", href="/BIMSYS/users", color="secondary", className="mt-3"), width=12, className="text-center"),
+                dbc.Col(dbc.Button("Retour aux utilisateurs", href="/BIMSYS/users", color="secondary", className="mt-3"), width=12, className="text-center"),
             ]),
         ], fluid=True, style={"padding": "30px", "background": "white", "min-height": "100vh"})
 
@@ -126,3 +128,19 @@ class BimUser:
                         return False, "/BIMSYS/collaborateurs"
 
             return is_open, no_update
+
+        @self.app.callback(
+        Output("input-user-taj", "value"),
+        Input("input-user-taj", "value"),
+        prevent_initial_call=True
+    )
+        def auto_save_taj(new_taj):
+            if new_taj is None or self.user_id  is None:
+                return no_update
+
+            with current_app.app_context():
+                user = dbBimUsers.query.get(self.user_id )
+                if user:
+                    user.taj = new_taj
+                    db.session.commit()
+            return new_taj

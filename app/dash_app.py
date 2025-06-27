@@ -7,6 +7,8 @@ from app.pages.bimuser import BimUser
 from app.pages.task import TaskPage
 from app.pages.phase import Phase
 from app.pages.login import LoginPage
+from app.pages.standard_tasks import StandardTaskView
+
 import feffery_antd_components as fac
 from app.pages.user import UserPage
 
@@ -38,6 +40,7 @@ class DashApp:
         self.phase = Phase(self.dash_app)
         self.user = UserPage(self.dash_app)
         self.bimUser = BimUser(self.dash_app)
+        self.standard_tasks = StandardTaskView(self.dash_app)
 
         
         self.dash_app.layout = dbc.Container([
@@ -95,6 +98,10 @@ class DashApp:
             elif  pathname.startswith("/BIMSYS/phase"):
                 phase_id = pathname.split("/")[-1]
                 content =  self.phase.layout(phase_id)
+            elif  pathname.startswith("/BIMSYS/standardtasks"):
+                 content = self.standard_tasks.layout()
+            elif  pathname.startswith("/BIMSYS/user"):
+                content = self.user.layout()
             else : 
                 content = HomePage().layout()
 
@@ -202,6 +209,15 @@ class DashApp:
                         'title': 'Collaborateurs',
                         'icon': 'antd-team',
                         'href': '/BIMSYS/collaborateurs'
+                    }
+                },
+                  {
+                    'component': 'Item',
+                    'props': {
+                        'key': 'Tâches Standards',
+                        'title': 'Tâches Standards',
+                        'icon': 'antd-task',
+                        'href': '/BIMSYS/standardtasks'
                     }
                 },
             ],

@@ -73,32 +73,102 @@ class Task(db.Model):
     __tablename__ = "tasks"
 
     id = db.Column(db.String(16), primary_key=True, default=lambda: shortuuid.uuid()[:10])
-    name = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(50), default="À faire")
     assigned_to = db.Column(db.Integer, db.ForeignKey("BimUsers.id"), nullable=True)
     project_id = db.Column(db.String(16), db.ForeignKey("projects.id"), nullable=False)
     project_phase_id = db.Column(db.String(16), db.ForeignKey("project_phases.id"), nullable=True)
-
     due_date = db.Column(db.Date, nullable=True)
-
-    # Relations
     project_phase = db.relationship('ProjectPhase', back_populates='tasks', lazy=True)
 
-    def __init__(self, name, description, status="À faire", assigned_to=None, project_id=None, project_phase_id=None, due_date=None):
+    #lien vers un modèle standard
+    standard_task_id = db.Column(db.String(16), db.ForeignKey("standard_tasks.id"), nullable=True)
+    standard_task = db.relationship("StandardTask", backref="tasks", lazy=True)
+
+    # lien vers tâche personnalisée (si elle existe)
+    custom_task_id = db.Column(db.String(16), db.ForeignKey("custom_tasks.id"), nullable=True)
+    custom_task = db.relationship("CustomTask", backref="tasks", lazy=True)
+        
+    @property
+    def name(self):
+        if self.standard_task:
+            return self.standard_task.name
+        elif self.custom_task:
+            return self.custom_task.custom_name
+        return "None"
+
+    @property
+    def description(self):
+        if self.standard_task:
+            return self.standard_task.description
+        elif self.custom_task:
+            return self.custom_task.custom_description
+        return "None"
+
+    @property
+    def source_type(self):
+        if self.standard_task:
+            return "standard"
+        elif self.custom_task:
+            return "custom"
+        return "undefined"
+
+
+
+    def __init__(
+        self,
+        project_phase_id,
+        due_date=None,
+        status="À faire",
+        assigned_to=None,
+        standard_task=None,
+        custom_task = None
+    ):
+        self.id = shortuuid.uuid()[:10]
+        self.project_phase_id = project_phase_id
+        self.status = status
+        self.due_date = due_date
+        self.assigned_to = assigned_to
+
+        # déduire le projet automatiquement via la phase
+        phase = ProjectPhase.query.get(project_phase_id)
+        if phase:
+            self.project_id = phase.project_id
+        else:
+            raise ValueError("project_phase_id invalide ou introuvable")
+
+        # Si la tâche est liée à un modèle standard
+        if standard_task:
+            self.standard_task = standard_task
+        if custom_task:
+            self.custom_task = custom_task
+
+class CustomTask(db.Model):
+    __tablename__ = "custom_tasks"
+    id = db.Column(db.String(16), primary_key=True, default=lambda: shortuuid.uuid()[:10])
+    custom_name = db.Column(db.String(200), nullable=False)
+    custom_description = db.Column(db.Text)
+    estimated_days = db.Column(db.Float, nullable=True)
+
+    def __init__(self, custom_name, custom_description, estimated_days ):
+        self.id = shortuuid.uuid()[:10]
+        self.custom_name = custom_name
+        self.custom_description = custom_description
+        self.estimated_days = estimated_days 
+
+class StandardTask(db.Model):
+
+    __tablename__ = "standard_tasks"
+    id = db.Column(db.String(16), primary_key=True, default=lambda: shortuuid.uuid()[:10])
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    estimated_days = db.Column(db.Float, nullable=True)
+
+    def __init__(self, name, description, estimated_days ):
         self.id = shortuuid.uuid()[:10]
         self.name = name
         self.description = description
-        self.status = status
-        self.assigned_to = assigned_to        
-        if project_id == None :
-            project_id = ProjectPhase.query.filter(ProjectPhase.id ==project_phase_id).one_or_none().project_id
-            if project_id:
-                self.project_id = project_id
-        else:
-            self.project_id = project_id
-        self.project_phase_id = project_phase_id
-        self.due_date = due_date
+        self.estimated_days = estimated_days        
+
 
 
 
@@ -113,6 +183,8 @@ class BimUsers(db.Model, UserMixin):
     )  
     projects = db.relationship("Project", backref="bim_manager", lazy=True )
     password = db.Column(db.String(255))
+    taj = db.Column(db.Integer)
+
 
     def __init__(self, name, email , role, password=None):
         self.id = shortuuid.uuid()[:10] 
@@ -120,6 +192,7 @@ class BimUsers(db.Model, UserMixin):
         self.email = email
         self.role = role
         self.password = password or shortuuid.uuid()[:10] 
+        
 
 
     @staticmethod

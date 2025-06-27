@@ -202,16 +202,7 @@ class ProjectPage:
                                         id="input-status",
                                         className="mb-3"
                                     ),
-                                    dbc.Label("Date de début"),
-                                    dbc.Input(type="date", value=str(project.start_date), id="input-start-date", className="mb-3"),
-                                    dbc.Label("Date de fin"),
-                                    dbc.Input(type="date", value=str(project.end_date), id="input-end-date", className="mb-3"),
-                                    dbc.Label("BIM Manager"),
-                                    dbc.Input(type="text", value=bim_manager.name if bim_manager else "Bim manager introuvable", id="input-bim-manager", disabled=True, className="mb-3"),
-                                    dbc.Label("Nombre de jours du projet"),
-                                    dbc.Input(type="number", value=project.days_budget, id="input-days-budget", min=0, className="mb-3"),
-                                    dbc.Label("Budget du projet (€)"),
-                                    dbc.Input(type="number", value=project.budget, id="input-budget", min=0, step=0.01, className="mb-3"),
+                                    
                                 ])
                             ], style={"box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)", "margin-bottom": "20px"})
 
@@ -337,19 +328,12 @@ class ProjectPage:
         
         @self.app.callback(
         Output("calendar-container", "children"),
-        Output("input-days-budget", "value"),
-        Output("input-budget", "value"),
         [
-            Input("input-phase", "value"),
             Input("input-status", "value"),
-            Input("input-start-date", "value"),
-            Input("input-end-date", "value"),
-            Input("input-days-budget", "value"),
-            Input("input-budget", "value"),
         ],
         State("input-code-akuiteo", "value"),
     )
-        def auto_save_project(phase, status, start_date, end_date, days_budget, budget, code):
+        def auto_save_project( status, code):
             if not ctx.triggered_id:
                 raise PreventUpdate
 
@@ -357,13 +341,8 @@ class ProjectPage:
 
             if not project:
                 raise PreventUpdate
-            
-            project.phase = phase
-            project.status = status
-            project.start_date = datetime.strptime(start_date, "%Y-%m-%d").date() 
-            project.end_date = datetime.strptime(end_date, "%Y-%m-%d").date()  
-            project.days_budget = days_budget
-            project.budget = budget
+           
+            project.status = status           
             db.session.commit()
             
             if ctx.triggered_id in ("input-start-date","input-end-date","input-days-budget"):
@@ -376,16 +355,7 @@ class ProjectPage:
                 new_calendar = [self.generate_weekly_planning_table_by_month(project=project , selected_month=mois)     for mois in lst_mois]
                 return new_calendar , no_update ,new_budget
             
-            if ctx.triggered_id in ("input-budget"):
-                if budget > 750:
-                    day_budget = budget/750
-                    project.days_budget = day_budget
-                    db.session.commit()
-
-                    lst_mois = self.get_month_list( project.start_date, project.end_date)
-                    new_calendar = [self.generate_weekly_planning_table_by_month(project=project , selected_month=mois)     for mois in lst_mois]
-                    return new_calendar, day_budget , no_update
-
+           
 
             return no_update
         

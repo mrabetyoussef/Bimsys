@@ -15,6 +15,7 @@ app.config["DEBUG"] = True
 app.secret_key  = "12345"
 db.init_app(app)
 migrate = Migrate(app, db)
+migrate.init_app(app, db)
 
 app.config.update(
     MAIL_SERVER='in-v3.mailjet.com',

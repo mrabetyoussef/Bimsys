@@ -6,8 +6,13 @@ services:
       dockerfile: ./Dockerfile
       args:
         PORT: 83
-    container_name: bimsys 
+        
+    container_name: bimsys
+    volumes:
+      - .:/bimsys  # MONTER le dossier local dans le conteneur
+
     ports:
       - "83:5000"
     environment:
       - FLASK_ENV=development
+      - FLASK_APP=app/app.py

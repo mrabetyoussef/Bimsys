@@ -27,7 +27,7 @@ class TaskPage:
                 dbc.Row([
                     dbc.Col([
                         dbc.Card([
-                            dbc.CardHeader(html.H4("Édition de la Tâche")),
+                            dbc.CardHeader(html.H4("Tâche ")),
                             dbc.CardBody([
 
                                 dbc.Label("Nom du projet"),
@@ -64,9 +64,12 @@ class TaskPage:
                                 dcc.Dropdown(
                                     id={"type": "task-status", "id": self.task_id},
                                     options=[
-                                        {"label": "Non commencé", "value": "Non commencé"},
+                                        {"label":  "À faire", "value":  "À faire"},
                                         {"label": "En cours", "value": "En cours"},
-                                        {"label": "Terminé", "value": "Terminé"}
+                                        {"label":  "Terminée", "value":  "Terminée"},
+                                        {"label":  "Urgente", "value":  "Urgente"}
+
+
                                     ],
                                     value=task.status,
                                     placeholder="Sélectionnez un statut"

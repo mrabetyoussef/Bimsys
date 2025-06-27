@@ -36,9 +36,9 @@ class HomePage:
                         },
                         {
                             'title': current_user.name,
-                            'href': '/',
+                            'href': '/BIMSYS/user',
                             'target': '_blank',
-                            'icon': 'antd-home',
+                            'icon': 'antd-user',
                         },
                      
                     ]
