@@ -12,7 +12,7 @@ services:
       - .:/bimsys  # MONTER le dossier local dans le conteneur
 
     ports:
-      - "83:5000"
+      - "82:5000"
     environment:
       - FLASK_ENV=development
       - FLASK_APP=app/app.py

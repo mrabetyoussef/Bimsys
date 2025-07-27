@@ -1,10 +1,10 @@
 import dash_bootstrap_components as dbc
-from dash import html, dcc, Input, Output, State, MATCH, no_update
+from dash import html, dcc, Input, Output, State, MATCH, no_update ,ctx
 from flask import current_app
 from database.db import db
 from database.model import Task, Project, BimUsers as dbBimUsers
 from datetime import datetime
-
+import logging
 
 class TaskPage:
     def __init__(self, app):
@@ -159,12 +159,23 @@ class TaskPage:
             prevent_initial_call=True
         )
         def update_assigned_to(value, id_dict):
+            logging.debug(ctx.triggered_id)
+            logging.debug("assigné à ....")
             task_id = id_dict["id"]
+            logging.debug(task_id)
+
             with current_app.app_context():
                 task = Task.query.get(task_id)
+                logging.debug(task)
+                logging.debug(value)
+
                 if task:
                     task.assigned_to = value
+                    logging.debug(  task.assigned_to)
+
                     db.session.commit()
+                    logging.debug(  task.assigned_to)
+
             return value
 
         # Date de fin

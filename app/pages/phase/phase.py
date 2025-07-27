@@ -1,12 +1,21 @@
 import dash_bootstrap_components as dbc
-from dash import html
+from dash import html , ctx , ALL ,callback_context
 from sqlalchemy.orm import joinedload
-from database.model import ProjectPhase as dbProjectPhase, Phase as dbPhase , Task as dbTask , BimUsers as dbBimusers , CustomTask, StandardTask     
+from database.model import ProjectPhase as dbProjectPhase, Phase as dbPhase , Task as dbTask , BimUsers as dbBimusers , CustomTask, StandardTask     , Workload 
 from database.db import db
 from dash import html, dcc, Input, Output, State, callback_context , no_update
 from datetime import datetime
 from datetime import date, timedelta
 from collections import defaultdict
+import logging
+import feffery_antd_components as fac
+logging.basicConfig(
+    level=logging.DEBUG,  # Enables debug-level logs
+    format='[%(levelname)s] %(asctime)s - %(name)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
+logger.debug("This is a debug message")
 
 class Phase:
     def __init__(self, app):
@@ -89,14 +98,14 @@ class Phase:
                             id='tasks-display'
                         )
                     ], style={"margin": "20px"}),
-                    self.add_task_modal()
+                    self.add_task_modal(project_phase)
                 ])
             ])
         ], fluid=True)
 
 
     def get_weeks_number(self,project_phase) :
-        if project_phase.start_date and project_phase.end_date : 
+        if project_phase.start_date and project_phase.end_date and project_phase.start_date < project_phase.end_date : 
             current = project_phase.start_date - timedelta(days=project_phase.start_date.weekday())
             lundis = []
 
@@ -116,12 +125,17 @@ class Phase:
         if lundis and project_phase.days_budget and project_phase.start_date and project_phase.end_date :
             nb_semaines = len(lundis)
 
+
+
             # Lignes d'en-têtes
             ligne_dates = html.Tr([html.Th("Date")] + [html.Th(lundi.strftime("%d/%m")) for lundi in lundis])
             ligne_jours = html.Tr([html.Td("Jour")] + [html.Td("Lun") for _ in lundis])
             ligne_semaines = html.Tr([html.Td("Semaine")] + [html.Td(str(lundi.isocalendar()[1])) for lundi in lundis])
 
             lignes = [ligne_dates, ligne_jours, ligne_semaines]
+
+            logging.debug(f"nb_semaines : {(nb_semaines)}")
+            logging.debug(f"project_phase.days_budget : {(project_phase.days_budget)}")
 
             if nb_semaines:
                 charge_hebdo = round(project_phase.days_budget / nb_semaines, 2)
@@ -188,12 +202,13 @@ class Phase:
 
 
 
-    def add_task_modal(self):
+    def add_task_modal(self,project_phase):
         standard_tasks = StandardTask.query.all()
         standard_tasks_options =         [ {"label": u.name, "value": u.id} for u in standard_tasks  ]
         bim_users = dbBimusers.query.filter(dbBimusers.role == "BIM MANAGER").all()
         options=[ {"label": u.name, "value": u.id} for u in bim_users  ]
-        st_task_ui =  html.Div([dbc.Label("Bim Manager"),
+
+        st_task_ui =  html.Div([dbc.Label("Nom"),
 
             dbc.Select(    
                         id="input-standrd-task",
@@ -209,7 +224,9 @@ class Phase:
                 placeholder="Assigner à "   
             ),
             dbc.Label("Échéance"),
-                dbc.Input(id="task-due-date", type="date", className="mb-3"),])
+                dbc.Input(id="standard-task-due-date", type="date", className="mb-3",
+                              min = project_phase.start_date if project_phase.start_date else None,
+                           max = project_phase.end_date if project_phase.start_date else None),])
         
         costum_task_ui =  html.Div([
             dbc.Label("Nom"),
@@ -226,7 +243,9 @@ class Phase:
                 placeholder="Assigner à "   
             ),
             dbc.Label("Échéance"),
-                dbc.Input(id="task-due-date", type="date", className="mb-3"),])
+                dbc.Input(id="costum-task-due-date", type="date", className="mb-3",
+                            min = project_phase.start_date if project_phase.start_date else None,
+                           max = project_phase.end_date if project_phase.start_date else None ),])
 
 
         return dbc.Modal([
@@ -236,9 +255,8 @@ class Phase:
                     [
                         dbc.Tab(st_task_ui, label="Tâche standard"),
                         dbc.Tab(costum_task_ui, label="Tâche Personalisé"),
-                        dbc.Tab("This tab's content is never seen", label="Tab 3", disabled=True),
                     ]
-)
+                    )
            
             ]),
             dbc.ModalFooter([
@@ -251,30 +269,7 @@ class Phase:
         if project_phase.tasks:
             task_cards = [
                 dbc.Row(
-                    html.A(
-                        dbc.Card(
-                            dbc.CardBody([
-                                dbc.Row([
-                                    dbc.Col(html.H5(task.name, className="card-title"), width=8),
-                                    dbc.Col(
-                                        dbc.Badge(task.status, color="secondary", className="float-end"),
-                                        width=4,
-                                        className="text-end"
-                                    )
-                                ]),
-                                html.P(f"Échéance : {task.due_date.strftime('%Y-%m-%d') if task.due_date else 'Non définie'}", className="card-text mb-0"),
-                            ]),
-                            className="card-hover",
-                            style={
-                                "cursor": "pointer",
-                                "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)",
-                                                        "margin-bottom": "20px",
-
-                            }
-                        ),
-                        href=f"/BIMSYS/task/{task.id}",
-                        style={"textDecoration": "none", "color": "inherit"}
-                    )
+                    self.task_ui(task)
                 )
                 for task in project_phase.tasks
             ]
@@ -283,6 +278,93 @@ class Phase:
 
         return html.Div(task_cards)
 
+    def task_ui(self, task):
+        return dbc.Row(
+            [
+                dbc.Col(
+                    html.A(
+                        dbc.Card(
+                            dbc.CardBody([
+                                dbc.Row([
+                                    dbc.Col(
+                                        [
+                                             dbc.Col(
+                                            html.Strong(task.name, className="card-title mb-1"),), 
+                                         dbc.Col(
+                                        
+                                            fac.AntdTag(
+                                                        content=f"{task.parent_task.estimated_days} jrs ",
+                                                        color='magenta',
+                                                        bordered=False,
+                                                    ),
+                                    ),],
+                                        width=100
+                                    ),
+                                  
+                                ], align="center", className="mb-2"),
+
+
+                                 dbc.Row([
+                                    dbc.Col(
+                                       html.P(
+                                        f"Échéance : {task.due_date.strftime('%Y-%m-%d') if task.due_date else 'Non définie'}",
+                                        className="card-text mb-0"
+                                    ),
+                                    style={"fontSize": "0.9rem", "color": "#6c757d"}
+                                    ),
+                                    dbc.Col(
+                                      
+                                             dbc.Badge(task.status, color="secondary", className="float-end"),
+                                        width="auto",
+                                        className="text-end"    
+
+
+                                    ),
+                                ], align="center", className="mb-2"),
+
+                            
+                            ]),
+                            className="card-hover",
+                            style={
+                                "cursor": "pointer",
+                                "boxShadow": "0px 4px 6px rgba(0, 0, 0, 0.1)",
+                                "marginBottom": "20px",
+                                "width": "100%",
+                            }
+                        ),
+                        href=f"/BIMSYS/task/{task.id}",
+                        style={"textDecoration": "none", "color": "inherit"}
+                    ),
+                    width=True
+                ),
+
+                # Colonne pour le bouton (en dehors de la carte, à droite)
+                dbc.Col(
+                    dbc.DropdownMenu(
+                        label=html.I(className="fas fa-ellipsis-vertical"),
+                        class_name="dropdown-hover",
+                        caret=False,
+                        toggle_style={
+                            "padding": "0",
+                            "border": "none",
+                            "background": "transparent",
+                            "color": "grey",
+                            "fontSize": "1.2rem"
+                        },
+                        children=[
+                            dbc.DropdownMenuItem("Supprimer", id={"type": "delete-task-btn", "index": task.id}),
+                        ],
+                        direction="left",
+                        size="sm",
+                    ),
+                    width="auto",
+                    className="d-flex align-items-start justify-content-end",
+                    style={"paddingTop": "8px"}
+                )
+            ],
+            align="start",
+            className="mb-2"
+        )
 
 
     def phase_info(self, project_phase):
@@ -308,7 +390,11 @@ class Phase:
             dbc.Label("Durée (sem.)"),
             dbc.Input(type="text", value=str(len(self.get_weeks_number(project_phase)) if self.get_weeks_number(project_phase) else None), disabled=True, className="mb-3"),
             dbc.Label("répartition par semaine"),
-            dbc.Input(type="text", value=str(round(project_phase.days_budget/len(self.get_weeks_number(project_phase)),2)if self.get_weeks_number(project_phase) and project_phase.days_budget else None), disabled=True, className="mb-3"),
+            dbc.Input(type="text", 
+                      value=str(self.calculate_weekly_partition(project_phase)), 
+                      disabled=True, 
+                      className="mb-3",
+                      id="weekly-partition"),
             dbc.Label("Bim Manager"),
 
             dbc.Select(    
@@ -318,8 +404,12 @@ class Phase:
                         className="mb-3"    
                     ),
 
+            dbc.Label("Budget en jours des tâches"),
+            dbc.Input(id="input-task-days-budget", type="number", value=project_phase.tasks_days_budget, className="mb-3",disabled=True),
+            dbc.Label("Budget en jours  adittionnel"),
+            dbc.Input(id="input-costum-days-budget", type="number", value=project_phase.costum_days_budget, className="mb-3"),
             dbc.Label("Budget en nombre de jours"),
-            dbc.Input(id="input-phase-days-budget", type="number", value=project_phase.days_budget, className="mb-3"),
+            dbc.Input(id="input-phase-days-budget", type="number", value=project_phase.days_budget, className="mb-3",disabled=True),
 
             dbc.Label("Budget en euros"),
             dbc.Input(id="input-phase-euros-budget", type="number", value=project_phase.euros_budget, className="mb-3"),
@@ -328,6 +418,11 @@ class Phase:
             dbc.Input(type="number", value=len(project_phase.tasks), disabled=True, className="mb-3"),
         ])
 
+    def calculate_weekly_partition(self, project_phase):
+        try :
+            return round(project_phase.days_budget/len(self.get_weeks_number(project_phase)),2)if self.get_weeks_number(project_phase) and project_phase.days_budget else None
+        except:
+            return no_update
 
     def delete_phase_modal(self):
         """
@@ -449,90 +544,200 @@ class Phase:
        
 
         @self.app.callback(
-            # Output("redirect", "pathname", allow_duplicate=True),  # Pour forcer le refresh ou rediriger
-            Output("tasks-display", "children"),  
-            Output("phase-calendar-container", "children", allow_duplicate=True),
-            Input("submit-task", "n_clicks"),
-            
-            [   State("costum-task-estimated-days", "value"),
-                State("costum-task-description", "value"),
-                State("costum-task-name", "value"),
-                State("input-task-bim-manager", "value"),
-                State("input-standrd-task", "value"),
-                State("task-due-date", "value"),
-                State("url", "pathname")  
-            ],
-            prevent_initial_call=True
-        )
+    Output("tasks-display", "children", allow_duplicate=True),
+    Output("phase-calendar-container", "children", allow_duplicate=True),
+    Output("input-task-days-budget","value"),
+    Output("input-phase-days-budget", "value", allow_duplicate=True),
+    Output("costum-task-estimated-days", "value"),
+    Output("costum-task-description", "value"),
+    Output("costum-task-name", "value"),
+    Output("input-task-bim-manager", "value"),
+    Output("input-standrd-task", "value"),
+    Output("standard-task-due-date", "value"),
+    Output("costum-task-due-date", "value"),
 
-        
-        def add_task(n_clicks,
-                     costum_task_estimated_days,
-                costum_task_description,
-                costum_task_name, assigned_to_id, standard_task_id, due_date, pathname):
+    Input("submit-task", "n_clicks"),
+    Input({"type": "delete-task-btn", "index": ALL}, "n_clicks"),
+    [
+        State("costum-task-estimated-days", "value"),
+        State("costum-task-description", "value"),
+        State("costum-task-name", "value"),
+        State("input-task-bim-manager", "value"),
+        State("input-standrd-task", "value"),
+        State("standard-task-due-date", "value"),
+        State("costum-task-due-date", "value"),
+        State("url", "pathname"),
+    ],
+    prevent_initial_call=True
+)
+        def handle_task_actions(
+            submit_click,
+            delete_clicks,
+            estimated_days,
+            custom_description,
+            custom_name,
+            assigned_to_id,
+            standard_task_id,
+            standard_task_due_date,
+            custom_task_due_date,
+            pathname
+        ):
             import re
             from datetime import datetime
-            if not due_date:
-                return no_update,no_update
+            from dash import no_update
 
-            match = re.search(r"/phase/([a-zA-Z0-9]+)", pathname)
-            if not match:
-                return no_update,no_update
+            triggered = ctx.triggered_id
+            logging.debug("Action déclenchée par : %s", triggered)
 
+            if isinstance(triggered, dict) and triggered.get("type") == "delete-task-btn":
+                task_id = triggered.get("index")
+                task_to_delete = db.session.query(dbTask).get(task_id)
+                if task_to_delete:
+                    db.session.delete(task_to_delete)
+                    try :
+                        project_phase = dbProjectPhase.query.get(self.project_phase_id)
+                        project_phase.tasks_days_budget = sum([t.parent_task.estimated_days for t in project_phase.tasks if t.parent_task.estimated_days is not None])
+                        project_phase.days_budget = (project_phase.costum_days_budget if project_phase.costum_days_budget else 0) +  project_phase.tasks_days_budget
+                    except :
+                        pass
+                    db.session.commit()
+                    logging.info("Tâche supprimée : ID %s", task_id)
 
-            phase_id = match.group(1)
-            project_phase = dbProjectPhase.query.get(phase_id)
-            if not project_phase:
-                return no_update,no_update
+                else:
+                    logging.warning("Tâche à supprimer introuvable : ID %s", task_id)
 
-            if  standard_task_id and  not StandardTask.query.get(standard_task_id):
-                raise NameError
-            elif  StandardTask.query.get(standard_task_id):
+                return (self.get_project_phase_tasks(project_phase),
+                        self.construire_calendrier_dash(project_phase),
+                        project_phase.tasks_days_budget,
+                        project_phase.days_budget,None,None,None,None,None,None,None)
 
-                task = dbTask(
-                    due_date=datetime.strptime(due_date, "%Y-%m-%d") if due_date else None,
-                    project_phase_id=phase_id,
-                    standard_task= StandardTask.query.get(standard_task_id),
-                    assigned_to=assigned_to_id
-                )
-            else : 
-                if costum_task_estimated_days and  costum_task_description and  costum_task_name:
-                    ct = CustomTask(custom_name=costum_task_name,custom_description=costum_task_description,estimated_days=costum_task_estimated_days)
-                    print(ct)
+            # 🔻 Cas ajout
+            if submit_click:
+                match = re.search(r"/phase/([a-zA-Z0-9]+)", pathname)
+                if not match:
+                    logging.warning("Phase ID non trouvée dans l'URL : %s", pathname)
+                    return no_update, no_update, no_update, no_update,None,None,None,None,None,None,None,None
+
+                phase_id = match.group(1)
+                project_phase = dbProjectPhase.query.get(phase_id)
+                if not project_phase:
+                    logging.warning("Aucune phase trouvée pour ID : %s", phase_id)
+                    return no_update, no_update , no_update, no_update,None,None,None,None,None,None,None,None
+
+                # Tâche standard
+                if standard_task_id:
+                    standard_task = StandardTask.query.get(standard_task_id)
+                    if not standard_task:
+                        logging.error("StandardTask introuvable pour ID %s", standard_task_id)
+                        return no_update, no_update , no_update, no_update,None,None,None,None,None,None,None,None
+
+                    due_date = None
+                    if standard_task_due_date:
+                        try:
+                            due_date = datetime.strptime(standard_task_due_date, "%Y-%m-%d")
+                        except ValueError:
+                            logging.error("Date invalide pour tâche standard : %s", standard_task_due_date)
+                            return no_update, no_update , no_update, no_update,None,None,None,None,None,None,None,None
+
                     task = dbTask(
-                    
-                    due_date=datetime.strptime(due_date, "%Y-%m-%d") if due_date else None,
-                    project_phase_id=phase_id,
-                    assigned_to=assigned_to_id,
-                    custom_task=ct
-                    
-                )
+                        due_date=due_date,
+                        project_phase_id=phase_id,
+                        assigned_to=assigned_to_id,
+                        standard_task=standard_task
+                    )
+                    logging.info("Ajout tâche standard : %s", task)
 
-            db.session.add(task)
-            db.session.commit()
-            project_phase = dbProjectPhase.query.get(self.project_phase_id)
+                # Tâche personnalisée
+                elif custom_task_due_date and estimated_days and custom_description and custom_name:
+                    try:
+                        due_date = datetime.strptime(custom_task_due_date, "%Y-%m-%d")
+                    except ValueError:
+                        logging.error("Date invalide pour tâche personnalisée : %s", custom_task_due_date)
+                        return no_update, no_update , no_update, no_update,None,None,None,None,None,None,None,None
 
-            return self.get_project_phase_tasks(project_phase),self.construire_calendrier_dash(project_phase=project_phase)
+                    ct = CustomTask(
+                        custom_name=custom_name,
+                        custom_description=custom_description,
+                        estimated_days=estimated_days
+                    )
+                    task = dbTask(
+                        due_date=due_date,
+                        project_phase_id=phase_id,
+                        assigned_to=assigned_to_id,
+                        custom_task=ct
+                    )
+                    values = [project_phase.tasks_days_budget, ct.estimated_days]
+                    project_phase.tasks_days_budget = sum(v for v in values if v is not None)
+                    logging.info("Ajout tâche personnalisée : %s", task)
+                else:
+                    logging.warning("Champs manquants pour création de tâche.")
+                    return no_update, no_update , no_update, no_update,None,None,None,None,None,None,None,None
+
+                # Enregistrement
+                try:
+                    db.session.add(task)
+                    project_phase.tasks_days_budget = sum([t.parent_task.estimated_days for t in project_phase.tasks])
+                    project_phase.days_budget = project_phase.costum_days_budget +  project_phase.tasks_days_budget
+
+                    db.session.commit()
+                except Exception as e:
+                    logging.exception("Erreur en enregistrant la tâche")
+                    db.session.rollback()
+                    return no_update, no_update , no_update, no_update
+
+                # Rafraîchir les composants
+                updated_phase = dbProjectPhase.query.get(phase_id)
+
+                return (self.get_project_phase_tasks(updated_phase), 
+                        self.construire_calendrier_dash(project_phase=updated_phase),
+                        updated_phase.tasks_days_budget,
+                        project_phase.days_budget,None,None,None,None,None,None,None)
+
+            return no_update, no_update , no_update, no_update,None,None,None,None,None,None,None
+
+
 
 
         @self.app.callback(
         Output("delete-phase-dummy", "children"), 
         Output("phase-calendar-container", "children", allow_duplicate=True),
-        Output("input-phase-days-budget", "value"),
+        Output("input-phase-days-budget", "value", allow_duplicate=True),
         Output("input-phase-euros-budget", "value"),
+        Output("weekly-partition", "value"),
+        Output("input-costum-days-budget", "value"),
+
+
+
         [
             Input("input-phase-start-date", "value"),
             Input("input-phase-end-date", "value"),
             Input("input-phase-days-budget", "value"),
             Input("input-phase-euros-budget", "value"),
             Input("input-phase-bim-manager", "value"),
+            Input("input-costum-days-budget", "value"),
+
         ],
         prevent_initial_call=True
 )
-        def update_phase_data(start_date, end_date, days_budget, euros_budget, bim_manager_id):
+        def update_phase_data(start_date, end_date, days_budget, euros_budget, bim_manager_id, costum_days_budget):
+            
             project_phase = dbProjectPhase.query.get(self.project_phase_id)
-            if project_phase:
+            if project_phase :
+                
                 ctx = callback_context.triggered_id
+
+                if "input-costum-days-budget" in ctx : 
+                    taj= project_phase.assigned_bimuser.taj 
+                    project_phase.costum_days_budget = costum_days_budget
+                    project_phase.days_budget = costum_days_budget +  project_phase.tasks_days_budget
+                    project_phase.euros_budget = (project_phase.costum_days_budget * taj ) + (taj *   project_phase.tasks_days_budget)
+                    db.session.commit()
+                    return "" , self.construire_calendrier_dash(project_phase=project_phase) , project_phase.days_budget , project_phase.euros_budget  , self.calculate_weekly_partition(project_phase) , no_update
+
+
+
+
+
                 if "input-phase-start-date" in ctx : 
                     try:
                         if start_date:
@@ -540,7 +745,9 @@ class Phase:
                     except Exception:
                         pass
                     db.session.commit()
-                    return "" , self.construire_calendrier_dash(project_phase=project_phase) , no_update , no_update
+                    if  bim_manager_id and start_date and end_date:
+                        Workload.update_workload(project_phase)
+                    return "" , self.construire_calendrier_dash(project_phase=project_phase) , no_update , no_update , self.calculate_weekly_partition(project_phase), no_update
                 
 
                 if "input-phase-end-date" in ctx : 
@@ -551,7 +758,9 @@ class Phase:
 
                     except Exception:
                         pass
-                    return "" , self.construire_calendrier_dash(project_phase=project_phase), no_update , no_update
+                    if  bim_manager_id and start_date and end_date:
+                        Workload.update_workload(project_phase)
+                    return "" , self.construire_calendrier_dash(project_phase=project_phase), no_update , no_update,self.calculate_weekly_partition(project_phase),no_update
                 
                 if "input-phase-days-budget" in ctx : 
             
@@ -560,23 +769,57 @@ class Phase:
                         if project_phase.assigned_bimuser : 
                             project_phase.euros_budget = days_budget * project_phase.assigned_bimuser.taj
                             db.session.commit()
-                        return "" , self.construire_calendrier_dash(project_phase=project_phase), no_update , project_phase.euros_budget
+                        if  bim_manager_id and start_date and end_date:
+                            Workload.update_workload(project_phase)
+                        return "" , self.construire_calendrier_dash(project_phase=project_phase), no_update , project_phase.euros_budget,self.calculate_weekly_partition(project_phase), no_update
                     
                 if "input-phase-euros-budget" in ctx : 
                     if euros_budget is not None:
                         project_phase.euros_budget = euros_budget
                         if project_phase.assigned_bimuser : 
-                            project_phase.days_budget =  project_phase.euros_budget / project_phase.assigned_bimuser.taj
+                            euro_budget_left = project_phase.euros_budget - (project_phase.tasks_days_budget * project_phase.assigned_bimuser.taj )
+                            
+
+                            project_phase.costum_days_budget =  euro_budget_left / project_phase.assigned_bimuser.taj
                             db.session.commit()
-                    return "" , self.construire_calendrier_dash(project_phase=project_phase), project_phase.days_budget , no_update
+                    if  bim_manager_id and start_date and end_date:
+                        Workload.update_workload(project_phase)
+                    return "" , self.construire_calendrier_dash(project_phase=project_phase), project_phase.days_budget , no_update,self.calculate_weekly_partition(project_phase),project_phase.costum_days_budget
+
+
+
                 
                 if "input-phase-bim-manager" in ctx : 
                     if bim_manager_id:                        
                         project_phase.assigned_bimuser_id = bim_manager_id
-                        project_phase.euros_budget = days_budget * project_phase.assigned_bimuser.taj
+                        project_phase.euros_budget = project_phase.days_budget * project_phase.assigned_bimuser.taj
                         db.session.commit()
-                        return "" , no_update, no_update, project_phase.euros_budget
+                        if  bim_manager_id and start_date and end_date:
+                            Workload.update_workload(project_phase)
+                        return "" , no_update, no_update, project_phase.euros_budget,self.calculate_weekly_partition(project_phase), no_update
 
-                return no_update , no_update , no_update , no_update
+              
+                return no_update , no_update , no_update , no_update,no_update,no_update
             else :
                 raise "probleme dans la phase"
+            
+        # @self.app.callback(
+        #     Output("tasks-display", "children", allow_duplicate=True),  
+        #     Input({"type": "delete-task-btn", "index": ALL}, "n_clicks"),
+        #     prevent_initial_call=True
+        # )
+        # def delete_task(n_clicks_list):
+
+        #     triggered = ctx.triggered_id
+        #     if "delete-task-btn" in triggered:
+        #         task_id = triggered["index"]
+        #         # Suppression de la tâche dans la base de données
+        #         task_to_delete = db.session.query(dbTask).get(task_id)
+        #         if task_to_delete:
+        #             db.session.delete(task_to_delete)
+        #             db.session.commit()
+
+        #         # Rechargement des tâches restantes
+        #         project_phase = dbProjectPhase.query.get(self.project_phase_id)
+
+        #         return self.get_project_phase_tasks(project_phase)

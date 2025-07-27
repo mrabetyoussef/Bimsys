@@ -77,3 +77,14 @@
      -  Reprendre Back/front et base de donnée  la partie impelementation
 
   - Compétences acquises suite à tous ce travail 
+
+- ### 27/06/2025
+  petite vidéo de scénario dans la présentation
+
+
+
+### AVEC MARIE
+  - Typologie des projets
+  - revoir excel des tâches
+  - d'autres propostions pour plan de charges
+  - 

@@ -15,7 +15,7 @@ class BimUser:
             dbc.Col(
                 html.A(
                     dbc.Card(
-                        dbc.CardBody([html.H5(p.name, className="card-title")]),
+                        dbc.CardBody([html.H5(p.project_parent.name, className="card-title")]),
                         className="card-hover",
                         style={
                             "margin": "5px",

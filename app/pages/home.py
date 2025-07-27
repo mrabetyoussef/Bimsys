@@ -19,8 +19,6 @@ class HomePage:
             active_teams = 5
             today = datetime.now()
             week_later = today + timedelta(days=7)
-            projects_ending_in_week = Project.query.filter(Project.end_date < week_later).filter(Project.end_date > today).all()
-            projects_ending_lst = [dbc.Accordion(dbc.AccordionItem(title=p.name , children=[html.P(f"Date de fin {p.end_date}")] ),start_collapsed=True)for p in projects_ending_in_week]
 
         return dbc.Container([
             dbc.Row([
@@ -91,7 +89,7 @@ class HomePage:
                         dbc.Col(dbc.Card([
                             dbc.CardBody([
                                 html.H5("Prochainement terminé", className="card-title"),                            
-                                dbc.Col(projects_ending_lst)
+                                dbc.Col()
                             ])
                         ], style={"text-align": "center", "border-radius": "10px",
                                   "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)"}), width=4),
@@ -110,18 +108,7 @@ class HomePage:
                     dbc.Card([
                         dbc.CardBody([
                             html.H5("Répartition des Projets", className="card-title"),
-                            # dcc.Graph(
-                            #     figure={
-                            #         "data": [
-                            #             {"values": [projects_count, completed_projects], 
-                            #              "labels": ["En cours", "Terminés"], 
-                            #              "type": "pie", "hole": 0.4,
-                            #              "marker": {"colors": ["#3498db", "#2ecc71"]},
-                            #              "hoverinfo": "label+percent"},
-                            #         ],
-                            #         "layout": {"showlegend": True, "height": 300}
-                            #     }
-                            # ),
+                      
                             self.plan_charge()
                         ])
                     ], style={"border-radius": "10px", "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"}),

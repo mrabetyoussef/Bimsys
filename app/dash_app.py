@@ -11,7 +11,7 @@ from app.pages.standard_tasks import StandardTaskView
 
 import feffery_antd_components as fac
 from app.pages.user import UserPage
-
+from assets.costum_loader import COSTUM_LOADER
 import dash
 from flask_login import current_user
 from app.pages import BimUsers
@@ -27,7 +27,8 @@ class DashApp:
             server=flask_app,
             routes_pathname_prefix="/BIMSYS/",
             external_stylesheets=[dbc.themes.BOOTSTRAP, 
-            "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"],     suppress_callback_exceptions=True
+            "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"],    
+            suppress_callback_exceptions=True
         )
         self.dash_app.enable_dev_tools(debug=True, dev_tools_ui=True, dev_tools_props_check=True)
         self.log_try = 0
@@ -42,11 +43,16 @@ class DashApp:
         self.bimUser = BimUser(self.dash_app)
         self.standard_tasks = StandardTaskView(self.dash_app)
 
-        
+        self.dash_app.index_string = COSTUM_LOADER
+
+
+
+
         self.dash_app.layout = dbc.Container([
                                                 
-
+            
             dcc.Location(id="url", refresh=False),
+            
 
             dbc.Row(
                 dbc.Col(
@@ -216,8 +222,19 @@ class DashApp:
                     'props': {
                         'key': 'Tâches Standards',
                         'title': 'Tâches Standards',
-                        'icon': 'antd-task',
+                        'icon':             'antd-database',
+
                         'href': '/BIMSYS/standardtasks'
+                    }
+                },
+                {
+                    'component': 'Item',
+                    'props': {
+                        'key': 'User',
+                        'title': f'{current_user.name}',
+                        'icon':             'antd-user',
+
+                        'href': '/BIMSYS/user'
                     }
                 },
             ],

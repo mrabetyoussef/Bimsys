@@ -111,18 +111,19 @@ class ProjectPage:
 
         self.project_id = project_id
         self.project = Project.query.get(self.project_id)
-        lst_mois = self.get_month_list( self.project.start_date,  self.project.end_date)
+        # lst_mois = self.get_month_list( self.project.start_date,  self.project.end_date)
         with current_app.app_context():
             project = Project.query.get(self.project_id)
-            bim_manager = dbBimUsers.query.filter(dbBimUsers.id ==project.bim_manager_id).one_or_none()
             
             if project:
                 return dbc.Container([self.task_adding_modal(),
                     dbc.Row([
                         dbc.Col(
                             [
-                            self.project_info(project, bim_manager), 
-                            self.project_planning(lst_mois, project)]),
+                            self.project_info(project), 
+                            # self.project_planning(lst_mois, project)
+                            ]
+                            ),
                         dbc.Col(
                             [ self.project_phases.layout(project)])
                            ]),
@@ -183,14 +184,13 @@ class ProjectPage:
                             ], style={"box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"}),
                         )
 
-    def project_info(self, project, bim_manager):
+    def project_info(self, project):
         return dbc.Card([
                                 dbc.CardHeader(html.H2(project.name, className="card-title")),
                                 dbc.CardBody([
                                      dbc.Label("Code Akuiteo"),
                                     dbc.Input(type="text", value=project.code_akuiteo, id="input-code-akuiteo", disabled=True, className="mb-3"),
-                                    dbc.Label("Phase du projet"),
-                                    dbc.Input(type="text", value=project.phase, id="input-phase", className="mb-3"),
+                                 
                                     dbc.Label("Statut"),
                                     dbc.Select(
                                         options=[
@@ -351,8 +351,7 @@ class ProjectPage:
 
                 else :
                     new_budget = no_update
-                lst_mois = self.get_month_list( project.start_date, project.end_date)
-                new_calendar = [self.generate_weekly_planning_table_by_month(project=project , selected_month=mois)     for mois in lst_mois]
+                new_calendar = [self.generate_weekly_planning_table_by_month(project=project )    ]
                 return new_calendar , no_update ,new_budget
             
            

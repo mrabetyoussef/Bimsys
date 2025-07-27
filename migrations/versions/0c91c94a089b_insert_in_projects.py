@@ -1,0 +1,105 @@
+"""insert in projects
+
+Revision ID: 0c91c94a089b
+Revises: a1b4f115d2d1
+Create Date: 2025-07-20 18:26:30.807124
+
+"""
+import sqlalchemy as sa
+from alembic import op
+
+from database.model import Project
+from database.db import db
+
+
+# revision identifiers, used by Alembic.
+revision = '0c91c94a089b'
+down_revision = 'a1b4f115d2d1'
+branch_labels = None
+depends_on = None
+
+
+
+def upgrade():
+
+    op.drop_table('projects')
+    op.create_table(
+    'projects',
+    sa.Column('id', sa.String(length=16), primary_key=True, nullable=False),
+    sa.Column('code_akuiteo', sa.String(length=16), nullable=True),  # plus de unique=True ici
+    sa.Column('name', sa.String(length=255), nullable=False),
+    sa.Column('status', sa.String(length=50), nullable=False),
+)
+
+    data = [
+('BRUXELLES HAREN XXL', '1014167'),
+('BIACHE SAINT VAAST - RÉFECTION DE LA PASSERELLE', '1012160'),
+('BIM - G&C - BIMM BV BONDY-  REA', '1013998'),
+('BIM - G&C - BIMM SP PEM  - EPR', '1016921'),
+('BIM - G&C - BIMM BORDEAUX COGC ARGOS', '1015929'),
+('BIM - SNCFR - CCR ALPES CHAMBERY', '1016634'),
+('BIM - G&C - HALTE NANTES ATLANTIQUE', '1017543'),
+('BONDY - INTERCONNEXION L15', '1005306'),
+('CAN - MARSEILLE - MARCHE GLOBAL DE PERFORMANCE POUR LA CONSTRUCTION DU PROJET DE DEPOT DE BUS DE ARENC', '1017093'),
+('CHATILLON HAUT et BAS', '1012582'),
+('CHATILLON BAS - ombrieres', '1012582'),
+('CHATILLON BAS', '1012582'),
+('CHATILLON HAUT', '1012582'),
+('COREA - L15 - SAINT-CLOUD - M1', '1016110'),
+('GARE DE TOULOUSE ACCES MARENGO', '1013264'),
+('Versailles chantier PH1', '1004891'),
+('Versailles chantier PH2', '1004890'),
+('KORENICE & BECVARY', '1018672-03'),
+('HAVRE-GAR-LH-GHV', '1017802'),
+('Le RAINCY - PHASE 1 - Sans BIM Officiel', '1009026'),
+('Le RAINCY - PHASE 2', '1009026'),
+('LIGNE D - MELUN', '1001751'),
+('LIGNE D - VILLENEUVE SAINT GEORGES', '1002179'),
+('LIGNE D - VILLIERS LE BEL', '1000153'),
+('LIGNE E - VAL DE FONTENAY', '1001760'),
+('LIGNE E - TOURNAN', '1003761'),
+('LIGNE J - CORMEILLES EN PARISIS', '1006411'),
+('LIGNE B - LE BOURGET', '1003748'),
+('LNPCA - ARENC', '1017138'),
+('LNPCA - LA PAULINE-HYERES', '1017139'),
+('LNPCA - MSC - MISSION MOE C', '1017622'),
+('LNPCA - ST ANDRE PEM', '1015041'),
+('LNPCA - ST CYR LES LECQUES', '1017141'),
+('LNPCA PHASE 2 - CANNES LA BOCCA', '1017141'),
+('LNPCA CANNES CENTRE', '1019055'),
+('LUXEMBOURG - CONCEPTION ET CONSTRUCTION D\'UN BATIMENT ADMINISTRATIF POUR CFL', '1014782'),
+('LUXEMBOURG - CONCEPTION ET CONSTRUCTION D\'UN BATIMENT ADMINISTRATIF POUR CFL (FAISABILITE SERVICES)', '1014782'),
+('MARSEILLE ST CHARLES - GARE  EMERGENCES', '1017587-02'),
+('MARSEILLE ST CHARLES - PARKINGS REVERSIBLES', '1017620'),
+('MARSEILLE ST CHARLES - GALERIE CRIMEE BLOC OUEST', '1018748-10'),
+('MARSEILLE ST CHARLES - DESCENDERIE METRO', '1018983-10'),
+('MONTARGIS', '1012900'),
+('NAE- PEM NICE AÉROPORT', '1014784'),
+('OFFRE DE SANTE - ILE ADAM', '1017848'),
+('PANTIN - CREATION D\'UN SMGL', '1013596'),
+('PANTIN - EXTENSION ATELIER TER', '1009563'),
+('PANTIN - LES GRANDES SERRES', '1016141'),
+('PANTIN GRANDES SERRES AMENAGEMENT INTERIEURS', '1017657'),
+('GAR - PLY - J-Gare-Sout-RER-D', '108673-06'),
+('PARIS EST - SCHEMA DIRECTEUR IMMOBILIER', '1003139'),
+('PARIS MONTPARNASSE - Eclairage quais', '1002841'),
+('LES AMARRES', '1012575'),
+('PSL - RENOVATION GRANDE HALLE VOYAGEURS', '1016837'),
+('SAINT-CLOUD', '1014786'),
+('TECHNICENTRE DE BORDEAUX PROJETS INTERCITES', '1016414'),
+('CON - ESP - VALENCE - NOUVELLE GARE CENTRALE', '1018676'),
+('VILLIERS-CHAMPIGNY-BRY (SYSTRA)', '1007803'),
+('SAINT MALO - TERMINAL DU NAYE (VOLET TERRESTRE) - RECONSTRUCTION GARE MARITIME', '1011655-01')]
+
+    for p,code in data:
+        p = Project(name=p,code_akuiteo=code , status="NA")
+        db.session.add(p)
+    db.session.commit()
+
+def downgrade():
+    pass
+
+
+
+def downgrade():
+    pass

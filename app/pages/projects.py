@@ -3,7 +3,6 @@ from dash import html, dcc, Input, Output, State, callback_context, no_update
 from flask import current_app
 from database.db import db
 from database.model import Project
-from database.model import BimUsers as dbBimUsers
 
 from datetime import datetime
 import pandas as pd
@@ -17,217 +16,394 @@ class ProjectsPage:
 
     def layout(self):
         """Return List of Projects with Add Project Modal"""
-        if self.view_type == "Vue Carte":
-            users_list = self.get_project_list()
-        else :
-            users_list = self.get_project_table()
+        projects_display = self.get_projects_display()
+        
         return dbc.Container([
-            dbc.Row([dbc.Col(html.H1("Projets", className="mb-4", style={"color": "#2c3e50"}), width=9),
-                     dbc.Col(dbc.Button("Ajouter un Projet", id="open-add-project", color="success",
-                                        className="mt-2", n_clicks=0),
-                                        width=3, className="text-end"), 
-                            dbc.RadioItems( options=[
-                                {"label": "Vue Tableau", "value": "Vue Tableau"},
-                                {"label": "Vue Carte", "value":"Vue Carte"},   ],
-                                value=self.view_type,
-                                id="project-view-type",
-                                inline=True,),
+            # Header with title and controls
+            dbc.Row([
+                dbc.Col([
+                    html.H1("Projets", className="mb-0", style={"color": "#2c3e50", "font-weight": "600"}),
+                    html.P(f"Gérez vos projets et suivez leur progression", 
+                          className="text-muted mb-0", style={"font-size": "0.9rem"})
+                ], width=6),
+                dbc.Col([
+                    dbc.ButtonGroup([
+                        dbc.Button([
+                            html.I(className="fas fa-th-large me-2"),
+                            "Vue Carte"
+                        ], id="btn-card-view", color="primary", outline=True, 
+                           active=self.view_type == "Vue Carte", size="sm"),
+                        dbc.Button([
+                            html.I(className="fas fa-table me-2"),
+                            "Vue Tableau"
+                        ], id="btn-table-view", color="primary", outline=True, 
+                           active=self.view_type == "Vue Tableau", size="sm"),
+                    ], className="me-3"),
+                    dbc.Button([
+                        html.I(className="fas fa-plus me-2"),
+                        "Nouveau Projet"
+                    ], id="open-add-project", color="success", size="sm", n_clicks=0)
+                ], width=6, className="text-end d-flex justify-content-end align-items-center")
+            ], className="mb-4 pb-3", style={"border-bottom": "1px solid #e9ecef"}),
 
-                    ], 
-                    className="align-items-center mb-4"),
+            # Projects display area
+            dbc.Row(id="project-list", children=projects_display, className="g-4"),
 
-            dbc.Row(id="project-list", children=users_list, className="g-4"),
-
-            self.add_project_modal()
-        ], fluid=True, style={"padding": "30px", "background": "white", "min-height": "100vh"})
+            # Add project modal
+            self.add_project_modal(),
+            
+            # Toast for notifications
+            dbc.Toast(
+                id="project-toast",
+                header="Notification",
+                is_open=False,
+                dismissable=True,
+                duration=4000,
+                style={"position": "fixed", "top": 20, "right": 20, "width": 350, "z-index": 1050}
+            )
+        ], fluid=True, style={"padding": "30px", "background": "#f8f9fa", "min-height": "100vh"})
     
     def add_project_modal(self):
-        users = dbBimUsers.query.filter(dbBimUsers.role == "BIM MANAGER")
-        
-        ui= dbc.Modal([
-                dbc.ModalHeader(dbc.ModalTitle("Ajouter un Projet")),
-                dbc.ModalBody([
-                    dbc.Label("Nom du Projet"),
-                    dbc.Input(id="project-name", type="text", placeholder="Entrez le nom du projet"),
-
-                    dbc.Label("Statut"),
-                    dcc.Dropdown(
-                        id="project-status",
-                        options=[
-                            {"label": "Non commencé", "value": "Non commencé"},
-                            {"label": "En cours", "value": "En cours"},
-                            {"label": "Terminé", "value": "Terminé"}
-                        ],
-                        placeholder="Sélectionnez un statut"
-                    ),
-
-                    dbc.Label("Date de début"),
-                    dbc.Input(id="project-start-date", type="date"),
-
-                    dbc.Label("Date de fin"),
-                    dbc.Input(id="project-end-date", type="date"),
-
-                    dbc.Label("Phase"),
-                    dcc.Dropdown(id="project-phase",
-                        options=[
-                            {"label": "EP", "value": "EP"},
-                            {"label": "APS", "value": "APS"},
-                            {"label": "APD", "value": "APD"},
-                            {"label": "PRO", "value": "PRO"}
-                        ],
-                        placeholder="Sélectionnez une phase"
-                    ),
-
-                    dbc.Label("BIM MANAGER"),
-                    dcc.Dropdown(id="project-bim-manager",
-                        options=[
-                            {"label": user.name , "value": user.id} for user in users
-                        ],
-                        placeholder="Sélectionnez un BIM MANAGER"
-                    ),
-                ]),
-                dbc.ModalFooter([
-                    dbc.Button("Annuler", id="close-add-project", className="ml-auto"),
-                    dbc.Button("Ajouter", id="submit-add-project", color="primary"),
+        """Enhanced modal for adding new projects"""
+        return dbc.Modal([
+            dbc.ModalHeader([
+                dbc.ModalTitle([
+                    html.I(className="fas fa-plus-circle me-2"),
+                    "Ajouter un Nouveau Projet"
+                ], style={"color": "#2c3e50"})
+            ]),
+            dbc.ModalBody([
+                dbc.Form([
+                    # Project Name
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Label("Nom du Projet *", className="fw-bold"),
+                            dbc.Input(
+                                id="project-name", 
+                                type="text", 
+                                placeholder="Ex: Résidence Les Jardins",
+                                className="mb-3"
+                            ),
+                            dbc.FormFeedback("Veuillez saisir un nom de projet", type="invalid")
+                        ])
+                    ]),
+                    
+                    # Akuiteo Code
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Label("Code Akuiteo *", className="fw-bold"),
+                            dbc.Input(
+                                id="project-akuiteo-code", 
+                                type="text", 
+                                placeholder="Ex: AK2024001",
+                                className="mb-3"
+                            ),
+                            dbc.FormFeedback("Veuillez saisir un code Akuiteo", type="invalid")
+                        ])
+                    ]),
+                    
+                    # Status
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Label("Statut", className="fw-bold"),
+                            dcc.Dropdown(
+                                id="project-status",
+                                options=[
+                                    {"label": "Non commencé", "value": "Non commencé"},
+                                    {"label": "En cours", "value": "En cours"},
+                                    {"label": "En attente", "value": "En attente"},
+                                    {"label": "Terminé", "value": "Terminé"},
+                                    {"label": "Suspendu", "value": "Suspendu"}
+                                ],
+                                placeholder="Sélectionnez un statut (optionnel)",
+                                value="Non commencé",  # Default value
+                                className="mb-3"
+                            )
+                        ])
+                    ])
                 ])
-            ], id="add-project-modal", is_open=False)
-        
-        return ui
+            ]),
+            dbc.ModalFooter([
+                dbc.Button([
+                    html.I(className="fas fa-times me-2"),
+                    "Annuler"
+                ], id="close-add-project", color="secondary", outline=True),
+                dbc.Button([
+                    html.I(className="fas fa-save me-2"),
+                    "Créer le Projet"
+                ], id="submit-add-project", color="success", className="ms-2"),
+            ])
+        ], id="add-project-modal", is_open=False, size="lg")
     
-    def get_project_list(self):
-        """Fetch all projects and return as cards"""
+    def get_projects_display(self):
+        """Get projects display based on current view type"""
+        if self.view_type == "Vue Carte":
+            return self.get_project_cards()
+        else:
+            return self.get_project_table()
+    
+    def get_project_cards(self):
+        """Fetch all projects and return as enhanced cards"""
         with current_app.app_context():
             projects = Project.query.all()
+            
+            if not projects:
+                return [
+                    dbc.Col([
+                        dbc.Card([
+                            dbc.CardBody([
+                                html.Div([
+                                    html.I(className="fas fa-folder-open", style={"font-size": "3rem", "color": "#6c757d"}),
+                                    html.H5("Aucun projet", className="mt-3 text-muted"),
+                                    html.P("Commencez par créer votre premier projet", className="text-muted")
+                                ], className="text-center py-5")
+                            ])
+                        ], className="border-0 shadow-sm")
+                    ], width=12)
+                ]
+            
             return [
                 dbc.Col(
                     html.A(
-                        dbc.Card(
+                        dbc.Card([
                             dbc.CardBody([
-                                html.H5(p.name, className="card-title"),
-                                html.P(f"Statut: {p.status}", className="card-text"),
-                                html.P(f"Phase: {p.phase}", className="card-text"),
-                            ]),
-                            className="card-hover",
-                            style={
-                                "margin-bottom": "20px",
-                                "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"
-                            }
-                        ),
+                                dbc.Row([
+                                    dbc.Col([
+                                        html.H5(p.name, className="card-title mb-2", style={"color": "#2c3e50"}),
+                                        html.P([
+                                            html.I(className="fas fa-code me-2", style={"color": "#6c757d"}),
+                                            f"Code: {p.code_akuiteo}"
+                                        ], className="card-text text-muted mb-2", style={"font-size": "0.9rem"}),
+                                        dbc.Badge(
+                                            p.status,
+                                            color=self.get_status_color(p.status),
+                                            className="me-2"
+                                        )
+                                    ], width=12)
+                                ]),
+                                html.Hr(className="my-3"),
+                                dbc.Row([
+                                    dbc.Col([
+                                        html.Small([
+                                            html.I(className="fas fa-calendar me-1"),
+                                            "Créé le ", datetime.now().strftime("%d/%m/%Y")
+                                        ], className="text-muted")
+                                    ], width=12)
+                                ])
+                            ])
+                        ], className="h-100 shadow-sm border-0 card-hover", style={
+                            "transition": "all 0.3s ease",
+                            "cursor": "pointer"
+                        }),
                         href=f"/BIMSYS/project/{p.id}",
                         style={"textDecoration": "none", "color": "inherit"}
                     ),
-                    width=4
+                    width=4, className="mb-4"
                 )
                 for p in projects
             ]
 
-        
     def get_project_table(self):
-        projects = Project.query.all()
+        """Enhanced table view for projects"""
+        with current_app.app_context():
+            projects = Project.query.all()
+            
+            if not projects:
+                return [
+                    dbc.Col([
+                        dbc.Alert([
+                            html.I(className="fas fa-info-circle me-2"),
+                            "Aucun projet disponible. Créez votre premier projet pour commencer."
+                        ], color="info", className="text-center")
+                    ], width=12)
+                ]
 
-        project_data = [
-            {
-                "id": p.id,
-                "name": p.name,
-                "status": p.status,
-                "start_date": p.start_date.strftime("%Y-%m-%d") if p.start_date else None,
-                "end_date": p.end_date.strftime("%Y-%m-%d") if p.end_date else None,
-                "phase": p.phase,
-                "bim Manager": dbBimUsers.query.filter(p.bim_manager_id ==dbBimUsers.id).one_or_none().name
-            }
-            for p in projects
-        ]
+            # Create enhanced table
+            table_header = [
+                html.Thead([
+                    html.Tr([
+                        html.Th("Nom du Projet", style={"background-color": "#f8f9fa", "border": "none"}),
+                        html.Th("Code Akuiteo", style={"background-color": "#f8f9fa", "border": "none"}),
+                        html.Th("Statut", style={"background-color": "#f8f9fa", "border": "none"}),
+                        html.Th("Actions", style={"background-color": "#f8f9fa", "border": "none"})
+                    ])
+                ])
+            ]
+            
+            table_body = [
+                html.Tbody([
+                    html.Tr([
+                        html.Td([
+                            html.A(
+                                p.name,
+                                href=f"/BIMSYS/project/{p.id}",
+                                style={"color": "#2c3e50", "text-decoration": "none", "font-weight": "500"}
+                            )
+                        ]),
+                        html.Td([
+                            html.Code(p.code_akuiteo, style={"background-color": "#f8f9fa", "color": "#6c757d"})
+                        ]),
+                        html.Td([
+                            dbc.Badge(
+                                p.status,
+                                color=self.get_status_color(p.status),
+                                className="me-2"
+                            )
+                        ]),
+                        html.Td([
+                            dbc.ButtonGroup([
+                                dbc.Button([
+                                    html.I(className="fas fa-eye")
+                                ], color="primary", size="sm", outline=True, 
+                                   href=f"/BIMSYS/project/{p.id}"),
+                                dbc.Button([
+                                    html.I(className="fas fa-edit")
+                                ], color="warning", size="sm", outline=True),
+                            ], size="sm")
+                        ])
+                    ], style={"border-bottom": "1px solid #e9ecef"})
+                    for p in projects
+                ])
+            ]
 
-        df = pd.DataFrame(project_data)    
+            return [
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.Div([
+                                dbc.Table(
+                                    table_header + table_body,
+                                    responsive=True,
+                                    hover=True,
+                                    className="mb-0"
+                                )
+                            ])
+                        ])
+                    ], className="shadow-sm border-0")
+                ], width=12)
+            ]
 
-        table = dbc.Table.from_dataframe(
-            df, striped=True, bordered=True, hover=True, index=True
-        )
-        return table
-
-
-
-
+    def get_status_color(self, status):
+        """Return appropriate color for status badge"""
+        status_colors = {
+            "Non commencé": "secondary",
+            "En cours": "primary",
+            "En attente": "warning",
+            "Terminé": "success",
+            "Suspendu": "danger"
+        }
+        return status_colors.get(status, "secondary")
 
     def register_callbacks(self):
-        """Register a Single Callback for Modal Control and Project adding"""
+        """Register callbacks for modal control, project adding, and view switching"""
 
         @self.app.callback(
             [Output("add-project-modal", "is_open"),
              Output("project-name", "value"),
+             Output("project-akuiteo-code", "value"),
              Output("project-status", "value"),
-             Output("project-start-date", "value"),
-             Output("project-end-date", "value"),
-             Output("project-phase", "value"),
-             Output("project-bim-manager", "value"),
-             Output("project-list", "children")],
+             Output("project-list", "children"),
+             Output("project-toast", "is_open"),
+             Output("project-toast", "children"),
+             Output("project-toast", "icon"),
+             Output("btn-card-view", "active"),
+             Output("btn-table-view", "active")],
             [Input("open-add-project", "n_clicks"),
              Input("close-add-project", "n_clicks"),
              Input("submit-add-project", "n_clicks"),
-             Input("project-view-type" , "value")],
-
+             Input("btn-card-view", "n_clicks"),
+             Input("btn-table-view", "n_clicks")],
             [State("add-project-modal", "is_open"),
              State("project-name", "value"),
-             State("project-status", "value"),
-             State("project-start-date", "value"),
-             State("project-end-date", "value"),
-             State("project-phase", "value"),
-             State("project-bim-manager", "value"),
-             State("project-view-type" , "value")],
+             State("project-akuiteo-code", "value"),
+             State("project-status", "value")],
             prevent_initial_call=True
         )
-        def handle_modal_and_add_project(open_click, close_click, submit_click,project_view_type_click, is_open,
-                                         name, status, start_date, end_date, phase, bim_manager_id , project_view_type):
+        def handle_project_interactions(open_click, close_click, submit_click, 
+                                      card_view_click, table_view_click,
+                                      is_open, name, akuiteo_code, status):
             
-
-
             ctx = callback_context
-
             if not ctx.triggered:
-                return is_open, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+                return (no_update, no_update, no_update, no_update, no_update, 
+                       no_update, no_update, no_update, no_update, no_update)
 
             button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            
+            # Handle view switching
+            if button_id == "btn-card-view":
+                self.view_type = "Vue Carte"
+                projects_display = self.get_projects_display()
+                return (no_update, no_update, no_update, no_update, projects_display,
+                       no_update, no_update, no_update, True, False)
+            
+            elif button_id == "btn-table-view":
+                self.view_type = "Vue Tableau"
+                projects_display = self.get_projects_display()
+                return (no_update, no_update, no_update, no_update, projects_display,
+                       no_update, no_update, no_update, False, True)
 
-            if button_id == "open-add-project":
-                return True, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+            # Handle modal operations
+            elif button_id == "open-add-project":
+                return (True, no_update, no_update, "Non commencé", no_update,
+                       no_update, no_update, no_update, 
+                       self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
 
-            if button_id == "close-add-project":
-                return False, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+            elif button_id == "close-add-project":
+                return (False, "", "", "Non commencé", no_update,
+                       no_update, no_update, no_update,
+                       self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
 
-            if button_id == "submit-add-project":
-                if not all([name, status, start_date, end_date, phase, bim_manager_id]):
-                    return is_open, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+            elif button_id == "submit-add-project":
+                import logging
+                # Validate required fields
+                if not name or not name.strip():
+                    return (is_open, no_update, no_update, no_update, no_update,
+                           True, "Veuillez saisir un nom de projet", "danger",
+                           self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
+                
+                if not akuiteo_code or not akuiteo_code.strip():
+                    return (is_open, no_update, no_update, no_update, no_update,
+                           True, "Veuillez saisir un code Akuiteo", "danger",
+                           self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
 
                 try:
-                    start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
-                    end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
-                except ValueError:
-                    return is_open, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+                    with current_app.app_context():
+                        # Check if project with same code already exists
+                        existing_project = Project.query.filter_by(code_akuiteo=akuiteo_code.strip()).first()
+                        if existing_project:
+                            return (is_open, no_update, no_update, no_update, no_update,
+                                   True, f"Un projet avec le code {akuiteo_code} existe déjà", "danger",
+                                   self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
+                        logging.debug(existing_project)
+                        try :
+                            
+                            # Create new project
+                            new_project = Project(
+                                name=name.strip(),
+                                code_akuiteo=akuiteo_code.strip(),
+                                status=status or "Non commencé",
+                            )
+                            logging.debug(new_project)
+                        except Exception as ex:
+                            logging.debug(ex)
 
-                with current_app.app_context():
-                    
-                    new_project = Project(
-                        name=name,
-                        status=status,
-                        start_date=start_date_obj,
-                        end_date=end_date_obj,
-                        phase=phase,
-                        bim_manager_id=bim_manager_id
-                    )
-                    db.session.add(new_project)
-                    db.session.commit()
-                if project_view_type == "Vue Carte" : 
-                    projects_display = self.get_project_list()
-                else :
-                    projects_display = self.get_project_table()
 
-                return (False,  None, None, None, None, None, None,     projects_display )  
+                        
+                        db.session.add(new_project)
+                        db.session.commit()
+                        
+                        projects_display = self.get_projects_display()
+                        
+                        return (False, "", "", "Non commencé", projects_display,
+                               True, f"Projet '{name}' créé avec succès!", "success",
+                               self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
+                        
+                except Exception as e:
+                    return (is_open, no_update, no_update, no_update, no_update,
+                           True, f"Erreur lors de la création du projet: {str(e)}", "danger",
+                           self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
 
-            if button_id == "project-view-type" :
-                self.view_type = project_view_type_click
-                if project_view_type_click == "Vue Carte" : 
-                    projects_display = self.get_project_list()
-                else :
-                    projects_display = self.get_project_table()
-
-                return (False,  None, None, None, None, None, None,     projects_display )  
+            return (no_update, no_update, no_update, no_update, no_update,
+                   no_update, no_update, no_update, 
+                   self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
