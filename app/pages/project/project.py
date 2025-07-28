@@ -1,18 +1,15 @@
 import dash_bootstrap_components as dbc
-from dash import html, dcc, Input, Output, State, callback_context
+from dash import html, dcc, Input, Output, State, callback_context, no_update
 from flask import current_app
 from database.db import db
 from database.model import Project
 from database.model import BimUsers as dbBimUsers
-from database.model import Task as  dbTask
-from dash import html, dcc, Input, Output, State, callback_context, no_update
+from database.model import Task as dbTask
 import plotly.express as px
 from datetime import datetime
 import pandas as pd
 import calendar
 from datetime import date, timedelta
-from dash import html
-import dash_bootstrap_components as dbc
 from math import ceil
 from dash import Input, Output, State, ctx
 from dash.exceptions import PreventUpdate
@@ -23,344 +20,345 @@ import full_calendar_component as fcc
 import random
 
 class ProjectPage:
-    def __init__(self,  app):
-        #self.project_id = project_id
-        #self.project = Project.query.get(self.project_id)
+    def __init__(self, app):
         self.app = app
         self.register_callbacks()
         self.project_phases = ProjectPhases(self.app)
+        
+        # Enhanced color schemes for better visual hierarchy
+        self.STATUS_COLORS = {
+            "En cours": {"color": "#1976d2", "bg": "#e3f2fd", "badge": "primary"},
+            "Terminé": {"color": "#388e3c", "bg": "#e8f5e9", "badge": "success"},
+            "Non commencé": {"color": "#757575", "bg": "#f5f5f5", "badge": "secondary"},
+            "En attente": {"color": "#f57c00", "bg": "#fff3e0", "badge": "warning"},
+            "Suspendu": {"color": "#d32f2f", "bg": "#ffebee", "badge": "danger"}
+        }
+        
+        self.PHASE_COLORS = [
+            "#1976d2", "#388e3c", "#f57c00", "#d32f2f", 
+            "#7b1fa2", "#303f9f", "#00796b", "#455a64"
+        ]
 
-    def calculate_jours_par_semaine(self, project):
-        if not (project.start_date and project.end_date and project.days_budget) :
-            return None
-
-        duration_days = (project.end_date - project.start_date).days
-        nb_semaines = max(1, ceil(duration_days / 7))  
-        jours_par_semaine = round(project.days_budget / nb_semaines, 2)
-        return jours_par_semaine
-
-
-    def generate_weekly_planning_table_by_month(self, project):
-        # Date du jour au format ISO
+    def generate_enhanced_calendar(self, project):
+        """Generate an enhanced calendar with better styling and functionality"""
         formatted_date = datetime.now().date().isoformat()
-        COLOR_CLASSES = [
-            "bg-gradient-primary",
-            "bg-gradient-secondary",
-            "bg-gradient-success",
-            "bg-gradient-danger",
-            "bg-gradient-warning",
-            "bg-gradient-info",
-            "bg-gradient-light",
-            "bg-gradient-dark",
-        ]
-        # Génération des événements à partir des phases du projet
-        new_events = [
-            {
-                "title": project_phase.phase.name,
-                "start": datetime.strptime(str(project_phase.start_date), "%Y-%m-%d").date().isoformat(),
-                "end": datetime.strptime(str(project_phase.end_date), "%Y-%m-%d").date().isoformat(),
-                "className": random.choice(COLOR_CLASSES),
+        
+        # Generate events from project phases with enhanced styling
+        events = []
+        for i, project_phase in enumerate(project.phases):
+            if project_phase.start_date and project_phase.end_date:
+                color = self.PHASE_COLORS[i % len(self.PHASE_COLORS)]
+                events.append({
+                    "title": project_phase.phase.name,
+                    "start": datetime.strptime(str(project_phase.start_date), "%Y-%m-%d").date().isoformat(),
+                    "end": datetime.strptime(str(project_phase.end_date), "%Y-%m-%d").date().isoformat(),
+                    "backgroundColor": color,
+                    "borderColor": color,
+                    "textColor": "#ffffff",
+                    "extendedProps": {
+                        "phase_id": project_phase.id,
+                        "description": getattr(project_phase.phase, 'description', '')
+                    }
+                })
 
-            }
-            for project_phase in project.phases
-            if project_phase.start_date and project_phase.end_date
-        ]
-
-        return html.Div(
+        return html.Div([
             fcc.FullCalendarComponent(
-                id="calendar",
-                initialView="dayGridMonth",  # ou "dayGridWeek" si tu veux la vue hebdo
+                id="project-calendar",
+                initialView="dayGridMonth",
                 headerToolbar={
                     "left": "prev,next today",
                     "center": "title",
-                    "right": "listWeek,timeGridDay,timeGridWeek,dayGridMonth",
+                    "right": "listWeek,timeGridWeek,dayGridMonth"
                 },
                 initialDate=formatted_date,
-                editable=False,
+                editable=True,
                 selectable=True,
-                events=new_events,
+                events=events,
                 nowIndicator=True,
                 navLinks=True,
+
+        
+            )
+        ], style={
+            "background": "white",
+            "border-radius": "12px",
+            "box-shadow": "0 2px 12px rgba(0,0,0,0.08)",
+            "padding": "20px",
+            "min-height": "600px"
+        })
+
+    def create_project_header(self, project):
+        """Create an enhanced project header with key metrics"""
+        # Calculate project progress
+        total_phases = len(project.phases)
+        completed_phases = len([p for p in project.phases if getattr(p, 'status', '') == 'Terminé'])
+        progress = (completed_phases / total_phases * 100) if total_phases > 0 else 0
+        
+        # # Calculate days remaining
+        # if project.end_date:
+        #     days_remaining = (project.end_date - datetime.now().date()).days
+        #     days_text = f"{days_remaining} jours restants" if days_remaining > 0 else "Projet terminé"
+        # else:
+        days_text = "Date de fin non définie"
+
+        status_config = self.STATUS_COLORS.get(project.status, self.STATUS_COLORS["Non commencé"])
+
+        return dbc.Card([
+            dbc.CardBody([
+                dbc.Row([
+                    dbc.Col([
+                        html.Div([
+                            html.H2(project.name, className="mb-2", 
+                                   style={"color": "#2c3e50", "font-weight": "600"}),
+                            dbc.Badge(
+                                project.status, 
+                                color=status_config["badge"],
+                                className="mb-3",
+                                style={"font-size": "0.9rem", "padding": "8px 16px"}
+                            ),
+                        ])
+                    ], md=8),
+                    dbc.Col([
+                        html.Div([
+                            html.H4(f"{progress:.0f}%", 
+                                   style={"color": status_config["color"], "margin": "0"}),
+                            html.Small("Progression", style={"color": "#6c757d"}),
+                            dbc.Progress(
+                                value=progress,
+                                color="primary" if progress < 100 else "success",
+                                className="mt-2",
+                                style={"height": "8px"}
+                            )
+                        ], className="text-center")
+                    ], md=4)
+                ], className="mb-4"),
+                            html.Hr(className="my-3"),
+
+                dbc.Row([
                 
-            ),
-             style={
-        "height": "600px",          
-        "overflow": "auto",         
-        "border": "1px solid #ccc", 
-        "padding": "10px",
-    }
-        )
+           
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Label("Code Akuiteo", className="fw-semibold mb-2"),
+                            dbc.Input(
+                                type="text", 
+                                value=project.code_akuiteo, 
+                                id="input-code-akuiteo", 
+                                disabled=True,
+                                style={
+                                    "background": "#f8f9fa",
+                                    "border": "1px solid #dee2e6",
+                                    "border-radius": "8px"
+                                }
+                            )
+                        ], md=6),
+                        
+                        dbc.Col([
+                            dbc.Label("Statut", className="fw-semibold mb-2"),
+                            dbc.Select(
+                                options=[
+                                    {"label": "📋 Non commencé", "value": "Non commencé"},
+                                    {"label": "🔄 En cours", "value": "En cours"},
+                                    {"label": "⏸️ En attente", "value": "En attente"},
+                                    {"label": "✅ Terminé", "value": "Terminé"},
+                                    {"label": "🚫 Suspendu", "value": "Suspendu"}
+                                ],
+                                value=project.status,
+                                id="input-status",
+                                style={"border-radius": "8px"}
+                            )
+                        ], md=6)
+                    ], className="mb-3"),
+                ])
+            ])
+        ], style={
+            "background": f"linear-gradient(135deg, {status_config['bg']} 0%, #ffffff 100%)",
+            "border-radius": "16px",
+            "box-shadow": "0 4px 20px rgba(0,0,0,0.08)",
+            "margin-bottom": "24px"
+        })
 
+    def create_project_details_card(self, project):
+        """Create enhanced project details form"""
+        return dbc.Card([
+            dbc.CardHeader([
+                html.Div([
+                    html.I(className="fas fa-info-circle me-2"),
+                    html.H5("Détails du Projet", className="mb-0 d-inline")
+                ], style={"color": "#495057"})
+            ], style={"background": "#f8f9fa", "border-bottom": "1px solid #e9ecef"}),
+            
+            dbc.CardBody([
+             
+            ])
+        ], style={
+            "border": "none",
+            "border-radius": "12px",
+            "box-shadow": "0 2px 12px rgba(0,0,0,0.08)",
+            "margin-bottom": "24px"
+        })
 
-    def get_month_list(self, start_date, end_date):
-        months = []
-        current = start_date.replace(day=1)
-        while current <= end_date:
-            months.append(current.strftime("%Y-%m"))
-            if current.month == 12:
-                current = current.replace(year=current.year + 1, month=1)
-            else:
-                current = current.replace(month=current.month + 1)
-        return months
+    def create_planning_card(self, project):
+        """Create enhanced planning card with calendar"""
+        return dbc.Card([
+          
 
+            dbc.CardBody([
+                html.H5("Planning Prévisonnel", className="mb-0 d-inline"),
 
+                html.Div(id="calendar-container", children=[
+                    self.generate_enhanced_calendar(project)
+                ])
+            ], style={"padding": "20px"})
+        ], style={
+            "border-radius": "12px",
+            "box-shadow": "0 2px 12px rgba(0,0,0,0.08)"
+        })
 
-
-    def layout(self,project_id):
-
-
+    def layout(self, project_id):
+        """Main layout with enhanced UI/UX"""
         self.project_id = project_id
-        self.project = Project.query.get(self.project_id)
-        # lst_mois = self.get_month_list( self.project.start_date,  self.project.end_date)
+        
         with current_app.app_context():
             project = Project.query.get(self.project_id)
             
-            if project:
-                return dbc.Container([self.task_adding_modal(),
-                    dbc.Row([
-                        dbc.Col(
-                            [
-                            self.project_info(project), 
-                            # self.project_planning(lst_mois, project)
-                            ]
-                            ),
-                        dbc.Col(
-                            [ self.project_phases.layout(project)])
-                           ]),
-
-
-                    dbc.Row(
-                        dbc.Col(
-                            dbc.Button("Back to Projects", href="/BIMSYS/projects", color="secondary", className="mt-3", size="lg"),
-                            width=12,
-                            className="text-center"
-                        )
-                    )
-                ], fluid=True, style={"padding": "30px", "background": "white", "min-height": "100vh"})
+            if not project:
+                return self.project_not_found_ui()
             
-            return self.project_not_found_ui()
+            self.project = project
+            
+            return dbc.Row([
+            
+                    dbc.Breadcrumb(
+                        items=[
+                            {"label": "Projets", "href": "/BIMSYS/projects", "external_link": True},
+                            {
+                                "label": project.name,
+                                "href": f"/BIMSYS/project/{project.id}",
+                                "external_link": True,
+                            },
+                        ],
+                        className="mb-3"
+                    ),
+                    
+                    dbc.Col([
+                        dbc.Row(self.create_project_header(project)),
+                        dbc.Row([self.create_planning_card(project)                           
+                        ]),
+                    ],className="g-4"),
 
-    def project_planning(self, lst_mois, project):
-        return dbc.Card([
-                            dbc.CardHeader([
-                                html.H5("Planning Prévisionnel du projet", className="mb-2"),                           
-                            ]),
-                            dbc.CardBody(children=[self.generate_weekly_planning_table_by_month(project=project)  ],id="calendar-container")
-                        ])
+                    dbc.Col([
+                            self.project_phases.layout(project)
+                        ],className="g-4" ,style={"margin-left" : "20px"}) ,
+                    
+               ])
 
     def project_not_found_ui(self):
-        return dbc.Container([
-                dbc.Row(
-                    dbc.Col(html.H1("Project Not Found", style={"color": "red"}), width=12)
-                ),
-                dbc.Row(
-                    dbc.Col(
-                        dbc.Button("Back to Projects", href="/BIMSYS/projects", color="secondary", className="mt-3", size="lg"),
-                        width=12,
-                        className="text-center"
-                    )
-                )
-            ], fluid=True, style={"padding": "30px", "background": "white", "min-height": "100vh"})
-
-    def project_tasks(self, project):
-        return dbc.Col(
-                            dbc.Card([
-                                dbc.CardHeader(
-                                    dbc.Row([
-                                        dbc.Col(html.H4("Tâches", className="mb-0"), width=10),
-                                        dbc.Col(
-                                            dbc.Button(
-                                                html.I(className="fa fa-plus", style={"color": "blue"}),
-                                                outline=True,
-                                                color="primary",
-                                                id="open-add-task"
-                                            ),
-                                            width=2,
-                                            className="text-end"
-                                        )
-                                    ], align="center")
-                                ),
-                                dbc.CardBody(self.get_project_tasks(project) , id="project-tasks-list")
-                            ], style={"box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"}),
-                        )
-
-    def project_info(self, project):
-        return dbc.Card([
-                                dbc.CardHeader(html.H2(project.name, className="card-title")),
-                                dbc.CardBody([
-                                     dbc.Label("Code Akuiteo"),
-                                    dbc.Input(type="text", value=project.code_akuiteo, id="input-code-akuiteo", disabled=True, className="mb-3"),
-                                 
-                                    dbc.Label("Statut"),
-                                    dbc.Select(
-                                        options=[
-                                            {"label": "En cours", "value": "en cours"},
-                                            {"label": "Terminé", "value": "terminé"},
-                                            {"label": "Non commencé", "value": "non commencé"}
-                                        ],
-                                        value=project.status,
-                                        id="input-status",
-                                        className="mb-3"
-                                    ),
-                                    
-                                ])
-                            ], style={"box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)", "margin-bottom": "20px"})
-
-    def task_adding_modal(self):
-        users = dbBimUsers.query.all()
-
-        return dbc.Modal([
-            dbc.ModalHeader(dbc.ModalTitle("Ajouter une Tâche")),
-            dbc.ModalBody([
-                dbc.Label("Nom du projet"),
-                dbc.Input(id="task-project-name", type="text", value=self.project.name , disabled=True),
-                dbc.Label("id du projet"),
-                dbc.Input(id="task-project-name", type="text", value=self.project.id , disabled=True),
-                dbc.Label("Nom de la Tâche"),
-                dbc.Input(id="task-name", type="text", ),
-                dbc.Label("Description de la Tâche"),
-                dbc.Input(id="task-description", type="text", ),
-                dbc.Label("Statut"),
-                dcc.Dropdown(
-                    id="task-status",
-                    options=[
-                        {"label": "Non commencé", "value": "Non commencé"},
-                        {"label": "En cours", "value": "En cours"},
-                        {"label": "Terminé", "value": "Terminé"}
-                    ],
-                    placeholder="Sélectionnez un statut"
-                ),
-                
-                dbc.Label("Assigné à"),
-                dcc.Dropdown(id="task-responsable",
-                    options=[
-                        {"label": user.name , "value": user.id} for user in users
-                    ],
-                    placeholder="Sélectionnez un BIM MANAGER"
-                ),
-                dbc.Label("Date de fin"),
-                dbc.Input(id="task-due-date", type="date"),
-            ]),
-            dbc.ModalFooter([
-                dbc.Button("Annuler", id="close-add-task", className="ml-auto"),
-                dbc.Button("Ajouter", id="submit-add-task", color="primary"),
-            ])
-        ], id="add-task-modal-uuid", is_open=False)
-
-    def get_status_badge_color(self, task):
-        status = task.status
-        match =   {"Non commencé" :  "secondary",
-                         "En cours" : "primary",
-                       "Terminé" : "success"}
-        print(match.get(status, "secondary"))
-        return match.get(status, "secondary")
-    
-    def get_project_tasks(self, project):
-        # if project.tasks:
-        #     return [
-        #         dbc.Row(
-        #             html.A(
-        #                 dbc.Card(
-        #                     dbc.CardBody([
-        #                         html.H5(t.name, className="card-title"),
-        #                         dbc.Badge(t.status, color=self.get_status_badge_color(t), className="me-1"),
-        #                         dbc.Badge(t.due_date, color="primary", className="me-1"),
-
-        #                     ]),
-        #                     className="card-hover", 
-        #                     style={
-        #                         "margin-bottom": "20px",
-        #                         "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.1)"
-        #                     }
-        #                 ),
-        #                 href=f"/BIMSYS/task/{t.id}",
-        #                 style={"textDecoration": "none", "color": "inherit"}
-        #             ),
-        #         )
-        #         for t in project.tasks
-        #     ]
-        # return html.Strong("Pas de tâche encore sur ce projet")
-        pass
+        """Enhanced 404 page"""
+        return html.Div([
+            dbc.Container([
+                dbc.Row([
+                    dbc.Col([
+                        html.Div([
+                            html.I(className="fas fa-exclamation-triangle", 
+                                  style={"font-size": "4rem", "color": "#dc3545", "margin-bottom": "20px"}),
+                            html.H1("Projet Non Trouvé", 
+                                   style={"color": "#495057", "margin-bottom": "15px"}),
+                            html.P("Le projet demandé n'existe pas ou a été supprimé.", 
+                                  style={"color": "#6c757d", "font-size": "1.1rem", "margin-bottom": "30px"}),
+                            dbc.Button(
+                                [html.I(className="fas fa-arrow-left me-2"), "Retour aux Projets"],
+                                href="/BIMSYS/projects",
+                                color="primary",
+                                size="lg",
+                                style={"border-radius": "25px", "padding": "12px 30px"}
+                            )
+                        ], className="text-center")
+                    ], width=12)
+                ], justify="center", style={"margin-top": "100px"})
+            ], fluid=True)
+        ], style={
+            "background": "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+            "min-height": "100vh"
+        })
 
     def register_callbacks(self):
-        @self.app.callback(
-            [Output("add-task-modal-uuid", "is_open"),
-             Output("project-tasks-list", "children")],
-            [Input("open-add-task", "n_clicks"),
-            Input("close-add-task", "n_clicks"),
-            Input("submit-add-task", "n_clicks")],
-            [State("add-task-modal-uuid", "is_open"),
-            State("task-name", "value"),
-            State("task-description", "value"),
-            State("task-status", "value"),
-            State("task-responsable", "value"),
-            State("task-due-date", "value")],
-            prevent_initial_call=True,
-            
-        )
-        def toggle_task_modal(open_click, close_click, submit_click, is_open,
-                            task_name, task_description, task_status, task_responsable, task_due_date):
-            ctx = callback_context
-            if not ctx.triggered:
-                return is_open
-            button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-            if button_id == "open-add-task":
-                return True, no_update
-            if button_id == "close-add-task":
-                return False,no_update
-            if button_id == "submit-add-task":
-                if task_name:
-                    due_date_obj = datetime.strptime(task_due_date, "%Y-%m-%d").date() if task_due_date else None
-                    new_task = dbTask(
-                        name=task_name,
-                        description=task_description,
-                        status=task_status if task_status else "Non commencé",
-                        assigned_to=task_responsable,
-                        project_id=self.project.id,
-                        due_date=due_date_obj
-                    )
-                    db.session.add(new_task)
-                    db.session.commit()
-                self.project = Project.query.get(self.project_id)
-
-                return False , self.get_project_tasks(self.project )
-            return is_open
+        """Enhanced callbacks with better error handling and UX"""
         
         @self.app.callback(
-        Output("calendar-container", "children"),
-        [
-            Input("input-status", "value"),
-        ],
-        State("input-code-akuiteo", "value"),
-    )
-        def auto_save_project( status, code):
+            [Output("calendar-container", "children"),
+             Output("budget-display", "value")],
+            [Input("input-status", "value"),
+             Input("input-start-date", "value"),
+             Input("input-end-date", "value"),
+             Input("input-days-budget", "value"),
+             Input("refresh-calendar", "n_clicks")],
+            [State("input-code-akuiteo", "value")],
+            prevent_initial_call=True
+        )
+        def update_project_and_calendar(status, start_date, end_date, days_budget, refresh_clicks, code):
             if not ctx.triggered_id:
                 raise PreventUpdate
 
-            project = db.session.query(Project).filter(Project.id == self.project_id).first()
+            try:
+                project = db.session.query(Project).filter(Project.id == self.project_id).first()
+                if not project:
+                    raise PreventUpdate
 
-            if not project:
+                # Update project fields
+                if ctx.triggered_id == "input-status":
+                    project.status = status
+                elif ctx.triggered_id == "input-start-date":
+                    project.start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+                elif ctx.triggered_id == "input-end-date":
+                    project.end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+                elif ctx.triggered_id == "input-days-budget":
+                    project.days_budget = int(days_budget) if days_budget else 0
+
+                db.session.commit()
+
+                # Calculate new budget display
+                budget_display = f"{(project.days_budget * 750):,.0f} €" if project.days_budget else "0 €"
+                
+                # Refresh calendar
+                new_calendar = self.generate_enhanced_calendar(project)
+                
+                return new_calendar, budget_display
+
+            except Exception as e:
+                print(f"Error updating project: {e}")
                 raise PreventUpdate
-           
-            project.status = status           
-            db.session.commit()
-            
-            if ctx.triggered_id in ("input-start-date","input-end-date","input-days-budget"):
-                if ctx.triggered_id =="input-days-budget":
-                    new_budget = project.days_budget * 750
 
-                else :
-                    new_budget = no_update
-                new_calendar = [self.generate_weekly_planning_table_by_month(project=project )    ]
-                return new_calendar , no_update ,new_budget
-            
-           
-
-            return no_update
-        
-
-            
-
-            
-        
-            
+        @self.app.callback(
+            Output("project-calendar", "events"),
+            [Input("refresh-calendar", "n_clicks")],
+            prevent_initial_call=True
+        )
+        def refresh_calendar_events(n_clicks):
+            if not n_clicks:
+                raise PreventUpdate
+                
+            try:
+                project = Project.query.get(self.project_id)
+                if not project:
+                    raise PreventUpdate
+                
+                # Generate fresh events
+                events = []
+                for i, project_phase in enumerate(project.phases):
+                    if project_phase.start_date and project_phase.end_date:
+                        color = self.PHASE_COLORS[i % len(self.PHASE_COLORS)]
+                        events.append({
+                            "title": project_phase.phase.name,
+                            "start": datetime.strptime(str(project_phase.start_date), "%Y-%m-%d").date().isoformat(),
+                            "end": datetime.strptime(str(project_phase.end_date), "%Y-%m-%d").date().isoformat(),
+                            "backgroundColor": color,
+                            "borderColor": color,
+                            "textColor": "#ffffff"
+                        })
+                
+                return events
+                
+            except Exception as e:
+                print(f"Error refreshing calendar: {e}")
+                raise PreventUpdate

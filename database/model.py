@@ -11,6 +11,10 @@ class Phase(db.Model):
     __tablename__ = "phases"
     id = db.Column(db.String(16), primary_key=True, unique=True, nullable=False, default=lambda: shortuuid.uuid()[:10])
     name =  db.Column(db.String(255), nullable=False)
+    
+    def __init__(self, name):
+        self.id = shortuuid.uuid()[:10]
+        self.name = name
 
 class ProjectPhase(db.Model):
     __tablename__ = "project_phases"
@@ -18,9 +22,6 @@ class ProjectPhase(db.Model):
     id = db.Column(db.String(16), primary_key=True, nullable=False, default=lambda: shortuuid.uuid()[:10])
     project_id = db.Column(db.String(16), db.ForeignKey("projects.id", name="fk_projectphase_project"), nullable=False)
     phase_id = db.Column(db.String(16), db.ForeignKey("phases.id", name="fk_projectphase_phase"), nullable=False)
-    project_parent = db.relationship("Project", back_populates="phases")
-    phase = db.relationship('Phase', backref='project_phases', lazy=True)
-    tasks = db.relationship("Task", back_populates="project_phase", lazy=True)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
     costum_days_budget =  db.Column(Float)
@@ -28,15 +29,23 @@ class ProjectPhase(db.Model):
     days_budget = db.Column(Float)
     euros_budget = db.Column(Float)
     assigned_bimuser_id = db.Column(db.String(16), db.ForeignKey("BimUsers.id", name="fk_projectphase_user"))
+
+    project_parent = db.relationship("Project", back_populates="phases")
+    phase = db.relationship('Phase', backref='project_phases', lazy=True)
+    tasks = db.relationship("Task", back_populates="project_phase", lazy=True)
     assigned_bimuser = db.relationship("BimUsers")
 
 
-    def __init__(self, project_id, phase_id):
+    def __init__(self, project_id, phase_id,start_date=None , end_date = None , days_budget = None,assigned_bimuser_id=None,euros_budget=None,costum_days_budget=None):
         self.id = shortuuid.uuid()[:10]
         self.project_id = project_id
         self.phase_id = phase_id
-
-    
+        self.start_date=start_date
+        self.end_date=end_date
+        self.days_budget=days_budget
+        self.assigned_bimuser_id = assigned_bimuser_id
+        self.euros_budget = euros_budget
+        self.costum_days_budget=costum_days_budget
 class Project(db.Model):
         
 

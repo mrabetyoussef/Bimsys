@@ -14,6 +14,9 @@ class ProjectsPage:
         self.register_callbacks()
         self.view_type = "Vue Carte"
 
+    def filter(self):
+        return dbc.Input(type="text" , id="project-filter",style={"margin-bottom" : "20px"}, placeholder="Entrez un nom de projet ou d'utilisateur")
+
     def layout(self):
         """Return List of Projects with Add Project Modal"""
         projects_display = self.get_projects_display()
@@ -26,6 +29,7 @@ class ProjectsPage:
                     html.P(f"Gérez vos projets et suivez leur progression", 
                           className="text-muted mb-0", style={"font-size": "0.9rem"})
                 ], width=6),
+
                 dbc.Col([
                     dbc.ButtonGroup([
                         dbc.Button([
@@ -45,6 +49,7 @@ class ProjectsPage:
                     ], id="open-add-project", color="success", size="sm", n_clicks=0)
                 ], width=6, className="text-end d-flex justify-content-end align-items-center")
             ], className="mb-4 pb-3", style={"border-bottom": "1px solid #e9ecef"}),
+            self.filter(),
 
             # Projects display area
             dbc.Row(id="project-list", children=projects_display, className="g-4"),
@@ -135,17 +140,18 @@ class ProjectsPage:
             ])
         ], id="add-project-modal", is_open=False, size="lg")
     
-    def get_projects_display(self):
+    def get_projects_display(self, projects =None):
         """Get projects display based on current view type"""
         if self.view_type == "Vue Carte":
-            return self.get_project_cards()
+            return self.get_project_cards(projects)
         else:
-            return self.get_project_table()
+            return self.get_project_table(projects)
     
-    def get_project_cards(self):
+    def get_project_cards(self,projects =None):
         """Fetch all projects and return as enhanced cards"""
         with current_app.app_context():
-            projects = Project.query.all()
+            if not projects:
+                projects = Project.query.all()
             
             if not projects:
                 return [
@@ -203,10 +209,11 @@ class ProjectsPage:
                 for p in projects
             ]
 
-    def get_project_table(self):
+    def get_project_table(self , projects =None):
         """Enhanced table view for projects"""
         with current_app.app_context():
-            projects = Project.query.all()
+            if not projects :
+                projects = Project.query.all()
             
             if not projects:
                 return [
@@ -295,115 +302,173 @@ class ProjectsPage:
         return status_colors.get(status, "secondary")
 
     def register_callbacks(self):
-        """Register callbacks for modal control, project adding, and view switching"""
+        """Register unified callback for project filtering, modal control, adding, and view switching"""
+        from dash import Input, Output, State, callback_context, no_update
+        from sqlalchemy import or_
+        import logging
 
         @self.app.callback(
-            [Output("add-project-modal", "is_open"),
-             Output("project-name", "value"),
-             Output("project-akuiteo-code", "value"),
-             Output("project-status", "value"),
-             Output("project-list", "children"),
-             Output("project-toast", "is_open"),
-             Output("project-toast", "children"),
-             Output("project-toast", "icon"),
-             Output("btn-card-view", "active"),
-             Output("btn-table-view", "active")],
-            [Input("open-add-project", "n_clicks"),
-             Input("close-add-project", "n_clicks"),
-             Input("submit-add-project", "n_clicks"),
-             Input("btn-card-view", "n_clicks"),
-             Input("btn-table-view", "n_clicks")],
-            [State("add-project-modal", "is_open"),
-             State("project-name", "value"),
-             State("project-akuiteo-code", "value"),
-             State("project-status", "value")],
+            [
+                Output("add-project-modal", "is_open"),
+                Output("project-name", "value"),
+                Output("project-akuiteo-code", "value"),
+                Output("project-status", "value"),
+                Output("project-list", "children", allow_duplicate=True),
+                Output("project-toast", "is_open"),
+                Output("project-toast", "children"),
+                Output("project-toast", "icon"),
+                Output("btn-card-view", "active"),
+                Output("btn-table-view", "active")
+            ],
+            [
+                Input("open-add-project", "n_clicks"),
+                Input("close-add-project", "n_clicks"),
+                Input("submit-add-project", "n_clicks"),
+                Input("btn-card-view", "n_clicks"),
+                Input("btn-table-view", "n_clicks"),
+                Input("project-filter", "value")
+            ],
+            [
+                State("add-project-modal", "is_open"),
+                State("project-name", "value"),
+                State("project-akuiteo-code", "value"),
+                State("project-status", "value")
+            ],
             prevent_initial_call=True
         )
-        def handle_project_interactions(open_click, close_click, submit_click, 
-                                      card_view_click, table_view_click,
-                                      is_open, name, akuiteo_code, status):
-            
+        def unified_handler(open_click, close_click, submit_click, 
+                            card_view_click, table_view_click, filter_value,
+                            is_open, name, akuiteo_code, status):
+
             ctx = callback_context
             if not ctx.triggered:
-                return (no_update, no_update, no_update, no_update, no_update, 
-                       no_update, no_update, no_update, no_update, no_update)
+                return [no_update] * 10
 
             button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-            
-            # Handle view switching
+
+            # --- Filtrage des projets ---
+            if button_id == "project-filter":
+                if filter_value:
+                    from sqlalchemy.orm import joinedload
+                    from sqlalchemy import or_
+                    from database.model import ProjectPhase , BimUsers
+
+                    filtred_projects = (
+                        db.session.query(Project)
+                        .join(Project.phases)
+                        .join(ProjectPhase.assigned_bimuser)
+                        .filter(
+                            or_(
+                                Project.name.ilike(f"%{filter_value}%"),
+                                BimUsers.name.ilike(f"%{filter_value}%")
+                            )
+                        )
+                        .options(joinedload(Project.phases).joinedload(ProjectPhase.assigned_bimuser))
+                        .distinct()
+                        .all()
+                    )
+
+                    logging.info(filtred_projects)
+                else:
+                    filtred_projects = Project.query.all()
+
+                return [
+                    no_update, no_update, no_update, no_update,
+                    self.get_projects_display(filtred_projects),
+                    no_update, no_update, no_update,
+                    self.view_type == "Vue Carte",
+                    self.view_type == "Vue Tableau"
+                ]
+
+            # --- Vue Carte ---
             if button_id == "btn-card-view":
                 self.view_type = "Vue Carte"
                 projects_display = self.get_projects_display()
-                return (no_update, no_update, no_update, no_update, projects_display,
-                       no_update, no_update, no_update, True, False)
-            
-            elif button_id == "btn-table-view":
+                return [
+                    no_update, no_update, no_update, no_update,
+                    projects_display,
+                    no_update, no_update, no_update,
+                    True, False
+                ]
+
+            # --- Vue Tableau ---
+            if button_id == "btn-table-view":
                 self.view_type = "Vue Tableau"
                 projects_display = self.get_projects_display()
-                return (no_update, no_update, no_update, no_update, projects_display,
-                       no_update, no_update, no_update, False, True)
+                return [
+                    no_update, no_update, no_update, no_update,
+                    projects_display,
+                    no_update, no_update, no_update,
+                    False, True
+                ]
 
-            # Handle modal operations
-            elif button_id == "open-add-project":
-                return (True, no_update, no_update, "Non commencé", no_update,
-                       no_update, no_update, no_update, 
-                       self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
+            # --- Ouverture de la modale ---
+            if button_id == "open-add-project":
+                return [
+                    True, no_update, no_update, "Non commencé", no_update,
+                    no_update, no_update, no_update,
+                    self.view_type == "Vue Carte",
+                    self.view_type == "Vue Tableau"
+                ]
 
-            elif button_id == "close-add-project":
-                return (False, "", "", "Non commencé", no_update,
-                       no_update, no_update, no_update,
-                       self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
+            # --- Fermeture de la modale ---
+            if button_id == "close-add-project":
+                return [
+                    False, "", "", "Non commencé", no_update,
+                    no_update, no_update, no_update,
+                    self.view_type == "Vue Carte",
+                    self.view_type == "Vue Tableau"
+                ]
 
-            elif button_id == "submit-add-project":
-                import logging
-                # Validate required fields
+            # --- Soumission d’un nouveau projet ---
+            if button_id == "submit-add-project":
                 if not name or not name.strip():
-                    return (is_open, no_update, no_update, no_update, no_update,
-                           True, "Veuillez saisir un nom de projet", "danger",
-                           self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
-                
+                    return [
+                        is_open, no_update, no_update, no_update, no_update,
+                        True, "Veuillez saisir un nom de projet", "danger",
+                        self.view_type == "Vue Carte",
+                        self.view_type == "Vue Tableau"
+                    ]
                 if not akuiteo_code or not akuiteo_code.strip():
-                    return (is_open, no_update, no_update, no_update, no_update,
-                           True, "Veuillez saisir un code Akuiteo", "danger",
-                           self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
+                    return [
+                        is_open, no_update, no_update, no_update, no_update,
+                        True, "Veuillez saisir un code Akuiteo", "danger",
+                        self.view_type == "Vue Carte",
+                        self.view_type == "Vue Tableau"
+                    ]
 
                 try:
                     with current_app.app_context():
-                        # Check if project with same code already exists
                         existing_project = Project.query.filter_by(code_akuiteo=akuiteo_code.strip()).first()
                         if existing_project:
-                            return (is_open, no_update, no_update, no_update, no_update,
-                                   True, f"Un projet avec le code {akuiteo_code} existe déjà", "danger",
-                                   self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
-                        logging.debug(existing_project)
-                        try :
-                            
-                            # Create new project
-                            new_project = Project(
-                                name=name.strip(),
-                                code_akuiteo=akuiteo_code.strip(),
-                                status=status or "Non commencé",
-                            )
-                            logging.debug(new_project)
-                        except Exception as ex:
-                            logging.debug(ex)
+                            return [
+                                is_open, no_update, no_update, no_update, no_update,
+                                True, f"Un projet avec le code {akuiteo_code} existe déjà", "danger",
+                                self.view_type == "Vue Carte",
+                                self.view_type == "Vue Tableau"
+                            ]
 
-
-                        
+                        new_project = Project(
+                            name=name.strip(),
+                            code_akuiteo=akuiteo_code.strip(),
+                            status=status or "Non commencé"
+                        )
                         db.session.add(new_project)
                         db.session.commit()
-                        
-                        projects_display = self.get_projects_display()
-                        
-                        return (False, "", "", "Non commencé", projects_display,
-                               True, f"Projet '{name}' créé avec succès!", "success",
-                               self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
-                        
-                except Exception as e:
-                    return (is_open, no_update, no_update, no_update, no_update,
-                           True, f"Erreur lors de la création du projet: {str(e)}", "danger",
-                           self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
 
-            return (no_update, no_update, no_update, no_update, no_update,
-                   no_update, no_update, no_update, 
-                   self.view_type == "Vue Carte", self.view_type == "Vue Tableau")
+                        projects_display = self.get_projects_display()
+                        return [
+                            False, "", "", "Non commencé", projects_display,
+                            True, f"Projet '{name}' créé avec succès !", "success",
+                            self.view_type == "Vue Carte",
+                            self.view_type == "Vue Tableau"
+                        ]
+                except Exception as e:
+                    return [
+                        is_open, no_update, no_update, no_update, no_update,
+                        True, f"Erreur lors de la création du projet : {str(e)}", "danger",
+                        self.view_type == "Vue Carte",
+                        self.view_type == "Vue Tableau"
+                    ]
+
+            return [no_update] * 10

@@ -36,11 +36,11 @@ def upgrade():
     ("Aurélie", "Estorge", "aurelie.estorge@arep.fr", "BIM MANAGER", None, 750),
 ]
 
-    for first, last, email, role, password, taj in users_data : 
-        u = BimUsers(name=first, lastname=last, email=email, role=role, password=password, taj=taj)
-        db.session.add(u)
+    # for first, last, email, role, password, taj in users_data : 
+    #     u = BimUsers(name=first, lastname=last, email=email, role=role, password=password, taj=taj)
+    #     db.session.add(u)
 
-    db.session.commit()
+    # db.session.commit()
     
 
     # ### end Alembic commands ###

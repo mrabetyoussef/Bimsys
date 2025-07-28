@@ -56,7 +56,9 @@ class ProjectPhases() :
             ]
         else : 
             phases = "Pas encore de phases sur ce projet"
-        ui = dbc.Card([dbc.CardHeader(dbc.Row([
+        ui = dbc.Card([         
+                 
+                        dbc.CardBody([dbc.Row([
                                         dbc.Col(html.H4("Phases", className="mb-0"), width=10),
                                         dbc.Col(
                                             dbc.Button(
@@ -68,9 +70,7 @@ class ProjectPhases() :
                                             width=2,
                                             className="text-end"
                                         )
-                                    ], align="center"),),           
-                 
-                        dbc.CardBody(phases)])
+                                    ], align="center"),html.Hr(),html.Div(phases)])])
         return ui
     
     def add_phase_model(self):
