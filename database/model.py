@@ -4,8 +4,9 @@ from sqlalchemy import Float , Boolean
 from datetime import date
 from flask_login import UserMixin
 import logging
-
-
+from dateutil.rrule import rrule, WEEKLY, MO
+import logging
+from datetime import timedelta
 
 class Phase(db.Model):
     __tablename__ = "phases"
@@ -29,7 +30,7 @@ class ProjectPhase(db.Model):
     days_budget = db.Column(Float)
     euros_budget = db.Column(Float)
     assigned_bimuser_id = db.Column(db.String(16), db.ForeignKey("BimUsers.id", name="fk_projectphase_user"))
-
+    status = db.Column(db.String(16))
     project_parent = db.relationship("Project", back_populates="phases")
     phase = db.relationship('Phase', backref='project_phases', lazy=True)
     tasks = db.relationship("Task", back_populates="project_phase", lazy=True)
@@ -46,6 +47,7 @@ class ProjectPhase(db.Model):
         self.assigned_bimuser_id = assigned_bimuser_id
         self.euros_budget = euros_budget
         self.costum_days_budget=costum_days_budget
+        
 class Project(db.Model):
         
 
@@ -225,7 +227,53 @@ class BimUsers(db.Model, UserMixin):
             db.session.add(admin)
             db.session.commit()
 
+class RealWorkload(db.Model):
+    __tablename__ = "real_workload"
 
+    __table_args__ = (
+        db.UniqueConstraint('bimuser_id', 'project_phase_id', 'week', name='uq_real_user_phase_week'),
+    )
+
+    id = db.Column(db.String(16), primary_key=True, default=lambda: shortuuid.uuid()[:10])
+    bimuser_id = db.Column(db.String(16), db.ForeignKey("BimUsers.id"), nullable=False)
+    project_phase_id = db.Column(db.String(16), db.ForeignKey("project_phases.id"), nullable=False)
+    week = db.Column(db.String(10), nullable=False)  
+    actual_days = db.Column(db.Float, nullable=True)  
+
+    project_phase = db.relationship("ProjectPhase", backref="real_workload_entries")
+    bimuser = db.relationship("BimUsers", backref="real_workload_entries")
+
+
+class DailyWorkload(db.Model):
+    __tablename__ = "daily_workload"
+
+    id = db.Column(db.String(16), primary_key=True, default=lambda: shortuuid.uuid()[:10])
+    project_id = db.Column(db.String(16), db.ForeignKey("projects.id"), nullable=False)
+    project_phase_id = db.Column(db.String(16), db.ForeignKey("project_phases.id"), nullable=False)
+    user_id = db.Column(db.String(16), db.ForeignKey("BimUsers.id"), nullable=True)  
+    hours = db.Column(db.Float, nullable=False, default=0.0)
+    date = db.Column(db.Date, nullable=False)
+    project = db.relationship("Project", backref="daily_workloads")
+    phase = db.relationship("ProjectPhase", backref="daily_workloads")
+    user = db.relationship("BimUsers", backref="daily_workloads")
+    start_time = db.Column(db.Time)
+    end_time = db.Column(db.Time)
+
+    def __init__(self,id ,project_id ,project_phase_id,user_id,hours,date,end_time,start_time):
+        self.id = id
+        self.project_id=project_id
+        self.project_phase_id=project_phase_id
+        self.user_id=user_id
+        self.hours=hours
+        self.date = date
+        self.start_time = start_time
+        self.end_time = end_time
+    @property
+    def week_iso(self):
+        """Retourne la semaine ISO sous forme '2025-W35' par ex."""
+        iso_year, iso_week, _ = self.date.isocalendar()
+        return f"{iso_year}-W{iso_week:02d}"
+    
 class Workload(db.Model):
     __tablename__ = "workload"
 
@@ -235,13 +283,13 @@ class Workload(db.Model):
     )
     id = db.Column(db.String(16), primary_key=True, default=lambda: shortuuid.uuid()[:10])
     bimuser_id = db.Column(db.String(16), db.ForeignKey("BimUsers.id"), nullable=False)
-    bimuser = db.relationship("BimUsers", backref="workload_entries")
     project_phase_id = db.Column(db.String(16), db.ForeignKey("project_phases.id"), nullable=False)
-    project_phase = db.relationship("ProjectPhase", backref="workload_entries")
     week = db.Column(db.String(10), nullable=False)  
-
     planned_days = db.Column(db.Float, nullable=True)  
     actual_days = db.Column(db.Float, nullable=True)  
+
+    project_phase = db.relationship("ProjectPhase", backref="workload_entries")
+    bimuser = db.relationship("BimUsers", backref="workload_entries")
 
 
     def __init__(self, bimuser_id, project_phase_id, week, planned_days=None, actual_days=None, type_mission=None, note=None):
@@ -255,43 +303,9 @@ class Workload(db.Model):
         self.note = note
     
 
-    def get_iso_weeks_list(start_date, end_date):
-        """
-        Renvoie la liste des semaines ISO entre deux dates (format : '2025-W27'),
-        en prenant comme début de semaine le lundi.
-        """
-        if not start_date or not end_date or start_date > end_date:
-            return []
-
-        # Aligner le départ sur le lundi précédent ou égal à start_date
-        aligned_start = start_date - timedelta(days=start_date.weekday())
-
-        # Génération des lundis de chaque semaine jusqu'à end_date
-        mondays = list(rrule(freq=WEEKLY, dtstart=aligned_start, until=end_date, byweekday=MO))
-
-        # Conversion en format ISO 'YYYY-Www'
-        iso_weeks = [f"{d.isocalendar()[0]}-W{d.isocalendar()[1]:02d}" for d in mondays]
-
-        return iso_weeks
     
-
     @staticmethod
-    def update_workload(project_phase):
-        
-        from dateutil.rrule import rrule, WEEKLY, MO
-        import logging
-        from datetime import timedelta
-
-        if not (project_phase.assigned_bimuser_id and project_phase.start_date and project_phase.end_date):
-            logging.warning("Phase non valide pour le plan de charge")
-            return
-
-        total_days = project_phase.days_budget or 0
-        if total_days <= 0:
-            logging.info("Aucun jour budgété pour cette phase, plan de charge non généré.")
-            return
-
-        def get_iso_weeks_list(start_date, end_date):
+    def get_iso_weeks_list(start_date, end_date):
             """
             Renvoie la liste des semaines ISO entre deux dates (format : '2025-W27'),
             en prenant comme début de semaine le lundi.
@@ -311,28 +325,42 @@ class Workload(db.Model):
             return iso_weeks
 
 
-        weeks_iso = get_iso_weeks_list(project_phase.start_date, project_phase.end_date)
+    @staticmethod
+    def update_workload(project_phase):
+
+        if not (project_phase.assigned_bimuser_id and project_phase.start_date and project_phase.end_date):
+            logging.warning("Phase non valide pour le plan de charge")
+            return
+
+        total_days = project_phase.days_budget or 0
+        if total_days <= 0:
+            logging.info("Aucun jour budgété pour cette phase, plan de charge non généré.")
+            return
+
+        
+
+        weeks_iso = Workload.get_iso_weeks_list(project_phase.start_date, project_phase.end_date)
         logging.debug(f"iso_weeks : {len(weeks_iso)}")
         logging.debug(f"total_days : {(total_days)}")
 
 
-        # Répartition équitable du temps sur les semaines
         days_per_week = round(total_days / len(weeks_iso), 2)
-
-        # 1. Supprimer les anciennes entrées pour cette phase hors période actuelle
+        
         Workload.query.filter(
             Workload.project_phase_id == project_phase.id,
             Workload.bimuser_id == project_phase.assigned_bimuser_id,
             ~Workload.week.in_(weeks_iso)
         ).delete(synchronize_session=False)
 
-        # 2. Créer ou mettre à jour les entrées valides
         for week in weeks_iso:
+
+            logging.warning(f"{project_phase.assigned_bimuser_id} , {project_phase.id,} , {week}")
+
             entry = Workload.query.filter_by(
                 bimuser_id=project_phase.assigned_bimuser_id,
                 project_phase_id=project_phase.id,
                 week=week
-            ).first()
+            ).one_or_none()
 
             if entry:
                 entry.planned_days = days_per_week
@@ -346,8 +374,7 @@ class Workload(db.Model):
                     type_mission=None
                 )
                 db.session.add(new_entry)
-
-        # 3. Commit transaction
+        logging.warning(f"done for project phase {project_phase}")
         try:
             db.session.commit()
             logging.debug(f"Workload mis à jour pour la phase {project_phase.id}")

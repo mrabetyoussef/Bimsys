@@ -23,3 +23,57 @@ a:hover .card-hover {
 }
 
 
+.cell-green {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+}
+.cell-orange {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+}
+.cell-red {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+}
+
+.custom-ag-grid .ag-header-custom {
+    background-color: #f8fafc !important;
+    border-bottom: 2px solid #e5e7eb !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+}
+.custom-ag-grid .ag-header-week {
+    background-color: #ffffff !important;
+    border-bottom: 2px solid #e5e7eb !important;
+    font-weight: 500 !important;
+    color: #374151 !important;
+}
+.custom-ag-grid .ag-header-current {
+    background-color: #EEF2FF !important;
+    border-left: 2px solid #4F46E5 !important;
+}
+.custom-ag-grid .cell-green {
+    background-color: #DCFCE7 !important;
+    color: #166534 !important;
+    font-weight: 600 !important;
+}
+.custom-ag-grid .cell-orange {
+    background-color: #FED7AA !important;
+    color: #9A3412 !important;
+    font-weight: 600 !important;
+}
+.custom-ag-grid .cell-red {
+    background-color: #FECACA !important;
+    color: #991B1B !important;
+    font-weight: 600 !important;
+}
+.custom-ag-grid .ag-row {
+    border-bottom: 1px solid #f3f4f6 !important;
+}
+.custom-ag-grid .ag-row:hover {
+    background-color: #f8fafc !important;
+}
+.custom-dropdown .Select-control {
+    border-radius: 8px !important;
+    border-color: #d1d5db !important;
+}

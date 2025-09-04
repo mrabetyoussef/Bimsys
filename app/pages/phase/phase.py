@@ -1158,7 +1158,8 @@ class Phase:
                             taj * (project_phase.tasks_days_budget or 0)
                         )
                         db.session.commit()
-                        
+                        Workload.update_workload(project_phase)
+
                         return ("", self.construire_calendrier_dash(project_phase),
                                project_phase.days_budget, project_phase.euros_budget,
                                self.calculate_weekly_partition(project_phase), no_update,

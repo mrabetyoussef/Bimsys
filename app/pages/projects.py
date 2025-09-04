@@ -3,9 +3,9 @@ from dash import html, dcc, Input, Output, State, callback_context, no_update
 from flask import current_app
 from database.db import db
 from database.model import Project
-
 from datetime import datetime
 import pandas as pd
+from app.utile import roles_required_for_actions
 
 class ProjectsPage:
     def __init__(self, app):
@@ -306,6 +306,10 @@ class ProjectsPage:
         from dash import Input, Output, State, callback_context, no_update
         from sqlalchemy import or_
         import logging
+        ALLOWED_ROLES = {"admin", "manager" , "BIM MANAGER"}
+        RESTRICTED = {"open-add-project", "submit-add-project"}
+
+
 
         @self.app.callback(
             [
@@ -336,6 +340,7 @@ class ProjectsPage:
             ],
             prevent_initial_call=True
         )
+        @roles_required_for_actions(ALLOWED_ROLES, RESTRICTED)
         def unified_handler(open_click, close_click, submit_click, 
                             card_view_click, table_view_click, filter_value,
                             is_open, name, akuiteo_code, status):
@@ -472,3 +477,5 @@ class ProjectsPage:
                     ]
 
             return [no_update] * 10
+
+

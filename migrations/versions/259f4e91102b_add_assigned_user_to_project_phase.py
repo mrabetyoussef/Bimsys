@@ -23,10 +23,10 @@ def upgrade():
     #     batch_op.drop_constraint(None, type_='foreignkey')
     #     batch_op.drop_column('project_id')
 
-    with op.batch_alter_table('project_phases', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('assigned_bimuser_id', sa.String(length=16), nullable=True))
-        batch_op.create_foreign_key('fk_projectphase_user', 'BimUsers', ['assigned_bimuser_id'], ['id'])
-
+    # with op.batch_alter_table('project_phases', schema=None) as batch_op:
+    #     batch_op.add_column(sa.Column('assigned_bimuser_id', sa.String(length=16), nullable=True))
+    #     batch_op.create_foreign_key('fk_projectphase_user', 'BimUsers', ['assigned_bimuser_id'], ['id'])
+    pass
     # with op.batch_alter_table('tasks', schema=None) as batch_op:
     #     batch_op.create_foreign_key(None, 'project_phases', ['project_phase_id'], ['id'])
 

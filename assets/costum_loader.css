@@ -36,3 +36,16 @@
 ._dash-loading {
     display: none !important;
 }
+
+.cell-green {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+}
+.cell-orange {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+}
+.cell-red {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+}

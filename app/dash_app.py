@@ -32,6 +32,7 @@ class DashApp:
         )
         self.dash_app.enable_dev_tools(debug=True, dev_tools_ui=True, dev_tools_props_check=True)
         self.log_try = 0
+        self.homepage = HomePage(self.dash_app)
         self.login_page = LoginPage(self.dash_app)
         self.login_layout = html.Div(self.login_page.layout())
         self.projects_page = ProjectsPage(self.dash_app)  
@@ -44,7 +45,6 @@ class DashApp:
         self.standard_tasks = StandardTaskView(self.dash_app)
 
         self.dash_app.index_string = COSTUM_LOADER
-
 
 
 
@@ -109,7 +109,7 @@ class DashApp:
             elif  pathname.startswith("/BIMSYS/user"):
                 content = self.user.layout()
             else : 
-                content = HomePage().layout()
+                content = self.homepage.layout()
 
             if current_user:
                 email =  current_user.email

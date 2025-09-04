@@ -86,6 +86,7 @@ def upgrade():
             print(ex)
             continue
     db.session.commit()
+    pass
 
 
 
@@ -98,17 +99,14 @@ def insert_project_phases(project_name, bimuser_name, phases_data):
     :param phases_data: Liste de dicts contenant phase, start_date, end_date, euros_budget, days_budget
     """
 
-    # 1. Chercher le projet
     project = Project.query.filter_by(name=project_name).first()
     if not project:
         raise ValueError(f"Projet '{project_name}' introuvable.")
 
-    # 2. Chercher le BimUser par nom (partiel accepté)
     user = next((u for u in BimUsers.query.all() if bimuser_name.lower() in u.name.lower()), None)
     if not user:
         raise ValueError(f"Utilisateur contenant '{bimuser_name}' introuvable.")
 
-    # 3. Récupérer tous les noms de phases à l'avance
     phase_names = list(set(entry["phase"] for entry in phases_data))
     phases = {p.name: p for p in Phase.query.filter(Phase.name.in_(phase_names)).all()}
 

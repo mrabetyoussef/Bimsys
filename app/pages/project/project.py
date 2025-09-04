@@ -286,17 +286,12 @@ class ProjectPage:
         """Enhanced callbacks with better error handling and UX"""
         
         @self.app.callback(
-            [Output("calendar-container", "children"),
-             Output("budget-display", "value")],
-            [Input("input-status", "value"),
-             Input("input-start-date", "value"),
-             Input("input-end-date", "value"),
-             Input("input-days-budget", "value"),
-             Input("refresh-calendar", "n_clicks")],
+            Output("calendar-container", "children"),
+            Input("input-status", "value"),
             [State("input-code-akuiteo", "value")],
             prevent_initial_call=True
         )
-        def update_project_and_calendar(status, start_date, end_date, days_budget, refresh_clicks, code):
+        def update_project_and_calendar(status, code):
             if not ctx.triggered_id:
                 raise PreventUpdate
 
@@ -307,13 +302,8 @@ class ProjectPage:
 
                 # Update project fields
                 if ctx.triggered_id == "input-status":
-                    project.status = status
-                elif ctx.triggered_id == "input-start-date":
-                    project.start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-                elif ctx.triggered_id == "input-end-date":
-                    project.end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
-                elif ctx.triggered_id == "input-days-budget":
-                    project.days_budget = int(days_budget) if days_budget else 0
+                    project.status = status               
+    
 
                 db.session.commit()
 
