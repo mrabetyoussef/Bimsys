@@ -9,6 +9,9 @@ dash-bootstrap-components==2.0.0
 dash-core-components==2.0.0
 dash-html-components==2.0.0
 dash-table==5.0.0
+dash_ag_grid==32.3.0
+dash_mantine_components==2.2.1
+et_xmlfile==2.0.0
 feffery_antd_components==0.3.13
 Flask==3.0.3
 Flask-Login==0.6.3
@@ -16,6 +19,7 @@ Flask-Mail==0.10.0
 Flask-Migrate==4.1.0
 Flask-Script==2.0.6
 Flask-SQLAlchemy==3.1.1
+full-calendar-component==0.0.4
 greenlet==3.1.1
 idna==3.10
 importlib_metadata==8.6.1
@@ -28,6 +32,7 @@ migrate==0.3.8
 narwhals==1.29.1
 nest-asyncio==1.6.0
 numpy==2.2.4
+openpyxl==3.1.5
 packaging==24.2
 pandas==2.2.3
 plotly==6.0.0
@@ -46,4 +51,3 @@ urllib3==2.3.0
 Werkzeug==3.0.6
 wheel==0.45.1
 zipp==3.21.0
-full_calendar_component
