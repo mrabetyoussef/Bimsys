@@ -7,6 +7,7 @@ import logging
 from dateutil.rrule import rrule, WEEKLY, MO
 import logging
 from datetime import timedelta
+from flask_login import current_user
 
 class Phase(db.Model):
     __tablename__ = "phases"
@@ -78,6 +79,8 @@ class Task(db.Model):
     id = db.Column(db.String(16), primary_key=True, default=lambda: shortuuid.uuid()[:10])
     status = db.Column(db.String(50), default="À faire")
     assigned_to = db.Column(db.Integer, db.ForeignKey("BimUsers.id"), nullable=True)
+    assigned_by = db.Column(db.Integer, db.ForeignKey("BimUsers.id" ), nullable=True  )
+
     project_id = db.Column(db.String(16), db.ForeignKey("projects.id"), nullable=False)
     project_phase_id = db.Column(db.String(16), db.ForeignKey("project_phases.id"), nullable=True)
     due_date = db.Column(db.Date, nullable=True)
@@ -137,6 +140,7 @@ class Task(db.Model):
         self.status = status
         self.due_date = due_date
         self.assigned_to = assigned_to
+        self.assigned_by = current_user.id
 
         # déduire le projet automatiquement via la phase
         phase = ProjectPhase.query.get(project_phase_id)

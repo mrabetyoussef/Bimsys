@@ -8,6 +8,7 @@ from app.pages.task import TaskPage
 from app.pages.phase import Phase
 from app.pages.login import LoginPage
 from app.pages.standard_tasks import StandardTaskView
+from app.pages.mytasks import UserTasksPage
 
 import feffery_antd_components as fac
 from app.pages.user import UserPage
@@ -15,7 +16,7 @@ from assets.costum_loader import COSTUM_LOADER
 import dash
 from flask_login import current_user
 from app.pages import BimUsers
-from database.model import BimUsers as dbBimUser
+from database.model import BimUsers as dbBimUser , Task
 
 class DashApp:
 
@@ -43,7 +44,7 @@ class DashApp:
         self.user = UserPage(self.dash_app)
         self.bimUser = BimUser(self.dash_app)
         self.standard_tasks = StandardTaskView(self.dash_app)
-
+        self.mytasks = UserTasksPage(self.dash_app)
         self.dash_app.index_string = COSTUM_LOADER
 
 
@@ -108,6 +109,8 @@ class DashApp:
                  content = self.standard_tasks.layout()
             elif  pathname.startswith("/BIMSYS/user"):
                 content = self.user.layout()
+            elif  pathname.startswith("/BIMSYS/mytasks"):
+                content = self.mytasks.layout()
             else : 
                 content = self.homepage.layout()
 
@@ -132,64 +135,13 @@ class DashApp:
     def build_layout(self, user_avatar, content):
         HEADER_HEIGHT = "64px"
 
-        return fac.AntdLayout([
-
-        fac.AntdHeader(
-            style={
-                "position": "fixed",
-                "top": "0",
-                "left": "0",
-                "margin": "0",
-                "zIndex": 10,
-                "width": "100%",
-                "background": "#fff",
-                "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
-                "height": HEADER_HEIGHT,
-                "display": "flex",
-                "alignItems": "center",
-                "padding": "0 16px",
-            },
-            children=dbc.Container(
-                dbc.Row(
-                    [
-                        dbc.Col(html.H2("BIM SYSTEM", className="mb-0"), width="auto"),
-                        dbc.Col(html.Div(), width=True),  
-                        dbc.Col(
-                            fac.AntdDropdown(
-                                fac.AntdAvatar(
-                                    mode="text",
-                                    text=user_avatar,
-                                    size="large",
-                                    style={"background": "#grey", "cursor": "pointer"}
-                                ),
-                                menuItems=[{
-                                     
-                                        "title": "Se déconnecter",
-                                        "icon": "antd-folder-open",
-                                        "href": "/BIMSYS/logout",
-                                        "target": "_self"
-                                    
-                                }],
-                                trigger="hover",
-                                placement="bottomRight",
-                            ),
-                            width="auto",
-                        ),
-                    ],
-                    align="center",
-                    className="h-100",
-                ),
-                fluid=True,
-                className="px-0"  
-            )
-        ),
-
-        fac.AntdLayout([
-
-          fac.AntdSider(
-    [
-        fac.AntdMenu(
-            menuItems=[
+        users_tasks = Task.query.filter(
+            Task.assigned_to == current_user.id,
+            Task.status.in_(["À faire", "Urgente"])
+        ).all()       
+        count = len(users_tasks) if users_tasks else None
+    
+        menu = [
                 {
                     'component': 'Item',
                     'props': {
@@ -237,7 +189,93 @@ class DashApp:
                         'href': '/BIMSYS/user'
                     }
                 },
-            ],
+            ]
+        if  count:
+          
+            menu.append({
+        'component': 'Item',
+                        'props': {
+                            'key': 'tasks',
+                            "title":     "tâches actives",
+                            'icon': "",
+                            'href': '/BIMSYS/mytasks'
+        }
+    })
+
+        return fac.AntdLayout([
+
+        fac.AntdHeader(
+            style={
+                "position": "fixed",
+                "top": "0",
+                "left": "0",
+                "margin": "0",
+                "zIndex": 10,
+                "width": "100%",
+                "background": "#fff",
+                "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+                "height": HEADER_HEIGHT,
+                "display": "flex",
+                "alignItems": "center",
+                "padding": "0 16px",
+            },
+            children=dbc.Container(
+                dbc.Row(
+                    [
+                        dbc.Col(html.H2("BIM SYSTEM", className="mb-0"), width="auto"),
+                        dbc.Col(html.Div(), width=True),  
+                        dbc.Col(
+                            fac.AntdDropdown(
+                                fac.AntdBadge( 
+                                    fac.AntdAvatar(
+                                    mode="text",
+                                    text=user_avatar,
+                                    size="large",
+                                    style={"background": "#grey", "cursor": "pointer"}
+                                ),count=count),
+                            
+                                menuItems=[ {
+                                     
+                                        "title":     html.Div(["vous avez " ,   fac.AntdTag(content=f'{count} ', color='red')," tâches actives"]),
+                                        "href": "/BIMSYS/mytasks",
+                                        "target": "_self"
+
+                                        
+                                    
+                                },{
+                                     
+                                        "title": "Se déconnecter",
+                                        "icon": "antd-folder-open",
+                                        "href": "/BIMSYS/logout",
+                                        "target": "_self"
+
+                                        
+                                    
+                                },
+                               ],
+                                trigger="hover",
+                                placement="bottomRight",
+                            ),
+                            width="auto",
+                        ),
+                    ],
+                    align="center",
+                    className="h-100",
+                ),
+                fluid=True,
+                className="px-0"  
+            )
+        ),
+
+        fac.AntdLayout([
+
+          fac.AntdSider(
+    [
+        fac.AntdMenu(
+            menuItems=menu,
+            menuItemKeyToTitle  = {'tasks': fac.AntdBadge(
+            'Mes tâches', count=count, offset=[20, 0]
+        ),},
             mode='inline',                     
             defaultSelectedKey='home',      
             style={

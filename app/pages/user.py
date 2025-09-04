@@ -402,7 +402,7 @@ class UserPage:
         )
         return dbc.Card([
             dbc.CardBody([
-                html.H5("Charge Prévu Vs réelle", className="mb-3", style={
+                html.H5("Heures passées", className="mb-3", style={
                     "fontWeight": "600",
                     "fontSize": "18px",
                     "color": "#1f2937"
@@ -454,11 +454,10 @@ class UserPage:
             for title, value, icon, color, subtitle in kpi_data
         ], className="g-4 mb-5")
 
+
+        
         return dbc.Container([
-            html.H3([
-                html.I(className="fas fa-chart-line me-2"),
-                "Vue d'ensemble"
-            ], className="mb-4 text-dark fw-bold"),
+            html.H5(["Vue générale"  ], className="mb-4 text-dark fw-bold"),
             kpi_cards
         ], fluid=True)
 
@@ -482,8 +481,7 @@ class UserPage:
     def render_charts_section(self, tasks, all_projects):
         """Render la section des graphiques avec un design amélioré"""
         return dbc.Container([
-            html.H3([
-                html.I(className="fas fa-chart-pie me-2"),
+            html.H5([
                 "Analyses visuelles"
             ], className="mb-4 text-dark fw-bold"),
             

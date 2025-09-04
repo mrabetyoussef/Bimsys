@@ -8,6 +8,7 @@ from datetime import datetime, date, timedelta
 from collections import defaultdict
 import logging
 import feffery_antd_components as fac
+from flask_login import current_user
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -589,6 +590,16 @@ class Phase:
                 ]),
                 dbc.Row([
                     dbc.Col([
+                        dbc.Label("Assigné par", className="fw-semibold"),
+                        dbc.Input(
+                            
+                            placeholder="Sélectionner un utilisateur...",
+                            className="mb-3",
+                            value= current_user.name, disabled=True
+                            
+                        )
+                    ]),
+                    dbc.Col([
                         dbc.Label("Assigné à", className="fw-semibold"),
                         dbc.Select(
                             id="input-task-bim-manager",
@@ -809,7 +820,7 @@ class Phase:
                     dbc.Col([
                         html.Small([
                             html.I(className="fas fa-user me-1"),
-                            f"Assigné: {task.assigned_to or 'Non assigné'}"
+                            f"Assigné: {dbBimusers.query.filter(dbBimusers.id == task.assigned_to).one_or_none().name or 'Non assigné'}"
                         ], className="text-muted")
                     ], width=6)
                 ]),
