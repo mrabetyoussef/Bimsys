@@ -23,17 +23,12 @@ def _safe_str(x, default="-"):
 class UserTasksPage:
     def __init__(self, app):
         self.app = app
-        # cache léger (optionnel)
         self._project_options = None
         self.register_callbacks()
 
-    # ---------------------------
-    # Layout
-    # ---------------------------
     def layout(self):
         return html.Div(
             [
-                # En-tête + fil d’Ariane
                 dbc.Container(
                     [
                         dbc.Row(
@@ -168,6 +163,7 @@ class UserTasksPage:
                                                                 "paginationPageSize": 10,
                                                                 "rowSelection": "single",
                                                             },
+
                                                         )
                                                     ]
                                                 ),
@@ -198,7 +194,6 @@ class UserTasksPage:
             {
                 "headerName": "Projet",
                 "field": "project_name",
-                "pinned": "left",
                 "tooltipField": "project_name",
                 "cellStyle": {"color": "#374151"},
                 "flex": 1,
@@ -209,6 +204,15 @@ class UserTasksPage:
                 "tooltipField": "phase_name",
                 "cellStyle": {"color": "#6b7280"},
                 "flex": 0.8,
+            },
+            {
+                "headerName": "name",
+                "field": "name",
+                "tooltipField": "phase_name",
+                "cellStyle": {"color": "#6b7280"},
+                "flex": 0.8,
+                "cellRenderer": "StockLink",
+
             },
             {
                 "headerName": "Statut",
@@ -288,8 +292,8 @@ class UserTasksPage:
                     "phase_name": ph.name,
                     "due_date": t.due_date.isoformat() if getattr(t, "due_date", None) else None,
                     "assigned_to": BimUsers.query.get( t.assigned_to).name  if BimUsers.query.get( t.assigned_to) else None,
-                    "assigned_by": BimUsers.query.get( t.assigned_by).name  if BimUsers.query.get( t.assigned_by) else None
-
+                    "assigned_by": BimUsers.query.get( t.assigned_by).name  if BimUsers.query.get( t.assigned_by) else None,
+                    "name" : f"{t.id} - {t.name}"
                     
 
                 }
@@ -340,4 +344,15 @@ class UserTasksPage:
                 project_ids=project_ids or [],
             )
 
-    
+        @self.app.callback(
+        Output("url", "pathname"),   # assuming you use dcc.Location(id="url")
+        Input("ut-grid", "rowClicked"),
+        prevent_initial_call=True,
+    )
+        def _go_to_task(row):
+            import logging
+            logging.warning(row)
+            if row and "data" in row and "id" in row["data"]:
+                task_id = row["data"]["id"]
+                return f"/BIMSYS/task/{task_id}"
+            return no_update
